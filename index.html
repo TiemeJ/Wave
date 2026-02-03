@@ -290,15 +290,32 @@
         const time = Array.from({length: 101}, (_, i) => i * 5); // 0 to 500ms
         const gaussian = (t, peak, width, amp) => amp * Math.exp(-0.5 * Math.pow((t - peak) / width, 2));
 
-        // Source Signals - Updated for substantial overlap and specific shapes
-        // C1: Peak ~130ms, wide enough to touch C2
-        // C2: Dip ~210ms, overlaps C1 tail and C3 start
-        // C3: Peak ~340ms, broad
-        const sources = {
-            c1: time.map(t => gaussian(t, 100, 30, 0.8)),
-            c2: time.map(t => gaussian(t, 160, 35, -1.3)), 
-            c3: time.map(t => gaussian(t, 290, 60, 1.4))
+        // Source Signals - Parameters that can be modified by dragging
+        // Default values to restore on "Default" button
+        const defaultParams = {
+            c1: { peak: 100, width: 30, amp: 0.8 },
+            c2: { peak: 160, width: 35, amp: -1.3 },
+            c3: { peak: 290, width: 60, amp: 1.4 }
         };
+
+        // Current parameters (modifiable)
+        let sourceParams = {
+            c1: { ...defaultParams.c1 },
+            c2: { ...defaultParams.c2 },
+            c3: { ...defaultParams.c3 }
+        };
+
+        // Function to generate sources from current parameters
+        function generateSources() {
+            return {
+                c1: time.map(t => gaussian(t, sourceParams.c1.peak, sourceParams.c1.width, sourceParams.c1.amp)),
+                c2: time.map(t => gaussian(t, sourceParams.c2.peak, sourceParams.c2.width, sourceParams.c2.amp)),
+                c3: time.map(t => gaussian(t, sourceParams.c3.peak, sourceParams.c3.width, sourceParams.c3.amp))
+            };
+        }
+
+        // Generate initial sources
+        let sources = generateSources();
 
         // State: Weights [Row][Col] -> C[Row] to E[Col]
         let weights = [
@@ -309,26 +326,30 @@
 
         // --- 2. PLOTLY SETUP ---
 
-        const getLayout = () => ({
+        const getLayout = (isSource = false) => ({
             margin: { t: 25, b: 25, l: 30, r: 10 },
-            xaxis: { range: [0, 500], showgrid: false, zeroline: false },
-            yaxis: { range: [-1.5, 1.5], showticklabels: false, showgrid: false, zeroline: true },
+            xaxis: { range: [0, 500], showgrid: false, zeroline: false, fixedrange: true },
+            yaxis: { range: [-1.5, 1.5], showticklabels: false, showgrid: false, zeroline: true, fixedrange: true },
             showlegend: false,
             height: 160, // Matches CSS height
             autosize: true
         });
-        const config = { staticPlot: true, responsive: true };
+        const getConfig = (isSource = false) => ({ 
+            staticPlot: true, 
+            responsive: true,
+            displayModeBar: false
+        });
 
-        // Draw Sources
-        Plotly.newPlot('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), config);
-        Plotly.newPlot('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), config);
-        Plotly.newPlot('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), config);
+        // Draw Sources (with drag enabled)
+        Plotly.newPlot('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), getConfig());
+        Plotly.newPlot('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), getConfig());
+        Plotly.newPlot('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), getConfig());
 
         // Draw Observed (Placeholders)
         const blueLine = {color: '#2980b9', width: 3};
-        Plotly.newPlot('plot-e1', [{x: time, y: [], line: blueLine}], getLayout(), config);
-        Plotly.newPlot('plot-e2', [{x: time, y: [], line: blueLine}], getLayout(), config);
-        Plotly.newPlot('plot-e3', [{x: time, y: [], line: blueLine}], getLayout(), config);
+        Plotly.newPlot('plot-e1', [{x: time, y: [], line: blueLine}], getLayout(), getConfig());
+        Plotly.newPlot('plot-e2', [{x: time, y: [], line: blueLine}], getLayout(), getConfig());
+        Plotly.newPlot('plot-e3', [{x: time, y: [], line: blueLine}], getLayout(), getConfig());
 
         // --- 3. MAIN UPDATE LOOP ---
 
@@ -339,6 +360,9 @@
         }
 
         function updateCalculations() {
+            // Regenerate sources from current parameters
+            sources = generateSources();
+
             // Arrays for Observed Data
             let e1 = new Array(time.length).fill(0);
             let e2 = new Array(time.length).fill(0);
@@ -369,9 +393,15 @@
                 e3[t] = (s1 * w13) + (s2 * w23) + (s3 * w33);
             }
 
-            Plotly.react('plot-e1', [{x: time, y: e1, line: blueLine}], getLayout(), config);
-            Plotly.react('plot-e2', [{x: time, y: e2, line: blueLine}], getLayout(), config);
-            Plotly.react('plot-e3', [{x: time, y: e3, line: blueLine}], getLayout(), config);
+            // Update source plots with new data
+            Plotly.react('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), getConfig());
+            Plotly.react('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), getConfig());
+            Plotly.react('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), getConfig());
+
+            // Update observed plots
+            Plotly.react('plot-e1', [{x: time, y: e1, line: blueLine}], getLayout(), getConfig());
+            Plotly.react('plot-e2', [{x: time, y: e2, line: blueLine}], getLayout(), getConfig());
+            Plotly.react('plot-e3', [{x: time, y: e3, line: blueLine}], getLayout(), getConfig());
         }
 
         // --- 4. SVG DIAGRAM ---
@@ -591,11 +621,18 @@
         }
 
         function setDefaults() {
+            // Reset weights
             weights = [
                 [{val: 1.0, on: true}, {val: 0.25, on: true}, {val: 0.5, on: true}],
                 [{val: 0.5, on: true}, {val: 0.5, on: true}, {val: -0.5, on: true}],
                 [{val: 1.0, on: true}, {val: 0.75, on: true}, {val: 0.5, on: true}]
             ];
+            // Reset source parameters
+            sourceParams = {
+                c1: { ...defaultParams.c1 },
+                c2: { ...defaultParams.c2 },
+                c3: { ...defaultParams.c3 }
+            };
             updateAll();
         }
 
@@ -616,7 +653,77 @@
             updateAll();
         }
 
-        // --- 7. WINDOW RESIZE HANDLER ---
+        // --- 7. DRAG INTERACTION FOR SOURCE PLOTS ---
+        
+        function setupDragHandlers() {
+            const plots = [
+                { id: 'plot-c1', param: 'c1' },
+                { id: 'plot-c2', param: 'c2' },
+                { id: 'plot-c3', param: 'c3' }
+            ];
+
+            plots.forEach(plot => {
+                const plotDiv = document.getElementById(plot.id);
+                let isDragging = false;
+                let startX = 0;
+                let startY = 0;
+                let startPeak = 0;
+                let startAmp = 0;
+
+                plotDiv.addEventListener('mousedown', (e) => {
+                    if (e.button === 0) { // Left click
+                        isDragging = true;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        startPeak = sourceParams[plot.param].peak;
+                        startAmp = sourceParams[plot.param].amp;
+                        plotDiv.style.cursor = 'grabbing';
+                        e.preventDefault();
+                    }
+                });
+
+                plotDiv.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const deltaX = e.clientX - startX;
+                        const deltaY = e.clientY - startY;
+                        
+                        // Get plot dimensions to convert pixel movement to data coordinates
+                        const plotWidth = plotDiv.offsetWidth;
+                        const plotHeight = plotDiv.offsetHeight;
+                        
+                        // Horizontal drag: shift peak position
+                        // X-axis spans 0-500, so calculate proportional shift
+                        const xShift = (deltaX / plotWidth) * 500;
+                        sourceParams[plot.param].peak = Math.max(0, Math.min(500, startPeak + xShift));
+                        
+                        // Vertical drag: change amplitude
+                        // Y-axis spans -1.5 to 1.5 (3 units), calculate proportional change
+                        const yChange = -(deltaY / plotHeight) * 3; // Negative because Y is inverted
+                        sourceParams[plot.param].amp = Math.max(-2, Math.min(2, startAmp + yChange));
+                        
+                        updateAll();
+                    }
+                });
+
+                plotDiv.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    plotDiv.style.cursor = 'grab';
+                });
+
+                plotDiv.addEventListener('mouseleave', () => {
+                    isDragging = false;
+                    plotDiv.style.cursor = 'grab';
+                });
+
+                plotDiv.addEventListener('mouseenter', () => {
+                    if (!isDragging) {
+                        plotDiv.style.cursor = 'grab';
+                    }
+                });
+            });
+        }
+
+        // --- 8. WINDOW RESIZE HANDLER ---
         
         let resizeTimeout;
         window.addEventListener('resize', () => {
@@ -624,9 +731,9 @@
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 // Recreate all plots with fresh layout
-                Plotly.react('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), config);
-                Plotly.react('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), config);
-                Plotly.react('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), config);
+                Plotly.react('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), getConfig());
+                Plotly.react('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), getConfig());
+                Plotly.react('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), getConfig());
                 
                 // Recalculate and redraw observed plots
                 updateCalculations();
@@ -638,6 +745,7 @@
 
         // --- INIT ---
         updateAll();
+        setupDragHandlers();
 
     </script>
 </body>
