@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEG Source Mixing Demo</title>
+    <!-- Load Plotly.js for graphing -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 10px; }
+        p { margin-bottom: 30px; color: #666; max-width: 800px; text-align: center; }
+
+        /* Main Grid Layout */
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 0.8fr 1fr; /* Source - Weights - Observed */
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Column Headers */
+        .col-header {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        /* Plot Containers */
+        .plot-wrapper {
+            height: 180px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .label-badge {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            background: #eee;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            z-index: 10;
+            font-size: 0.9rem;
+        }
+
+        /* Matrix Controls Styling */
+        .matrix-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .weight-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            width: 100%;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+
+        .component-label {
+            font-weight: bold;
+            width: 40px;
+            text-align: right;
+            margin-right: 10px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 5px;
+            flex: 1;
+        }
+
+        .slider-group label {
+            font-size: 0.75rem;
+            margin-bottom: 2px;
+            color: #555;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .val-display {
+            font-size: 0.8rem;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        /* Color coding to match typical EEG diagrams */
+        .c1-color { color: #e67e22; border-color: #e67e22; }
+        .c2-color { color: #e74c3c; border-color: #e74c3c; }
+        .c3-color { color: #2ecc71; border-color: #2ecc71; }
+
+        @media (max-width: 900px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>EEG Linear Superposition Demo</h1>
+    <p>
+        Adjust the weights (arrows) in the center matrix to see how Source Components (Left) 
+        combine mathematically to create Observed Waveforms (Right).
+        <br><i>Formula: Observed = Σ (Weight × Source)</i>
+    </p>
+
+    <div class="app-container">
+        
+        <!-- COLUMN 1: SOURCES -->
+        <div>
+            <div class="col-header">Source Components</div>
+            <div id="plot-c1" class="plot-wrapper"><div class="label-badge c1-color" style="border: 2px solid">C1: Visual</div></div>
+            <div id="plot-c2" class="plot-wrapper"><div class="label-badge c2-color" style="border: 2px solid">C2: Stimulus</div></div>
+            <div id="plot-c3" class="plot-wrapper"><div class="label-badge c3-color" style="border: 2px solid">C3: Attention</div></div>
+        </div>
+
+        <!-- COLUMN 2: WEIGHT MATRIX -->
+        <div class="matrix-container">
+            <div class="col-header">Mixing Weights (W)</div>
+            
+            <!-- Matrix Row 1 (Component 1 weights) -->
+            <div class="weight-row" style="border-left: 5px solid #e67e22;">
+                <div class="component-label c1-color">C1</div>
+                <div class="slider-group">
+                    <label>to E1</label>
+                    <input type="range" id="w11" min="-1" max="1" step="0.05" value="1.0" oninput="update()">
+                    <span id="val-w11" class="val-display">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>to E2</label>
+                    <input type="range" id="w12" min="-1" max="1" step="0.05" value="0.25" oninput="update()">
+                    <span id="val-w12" class="val-display">0.25</span>
+                </div>
+                <div class="slider-group">
+                    <label>to E3</label>
+                    <input type="range" id="w13" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
+                    <span id="val-w13" class="val-display">0.5</span>
+                </div>
+            </div>
+
+            <!-- Matrix Row 2 (Component 2 weights) -->
+            <div class="weight-row" style="border-left: 5px solid #e74c3c;">
+                <div class="component-label c2-color">C2</div>
+                <div class="slider-group">
+                    <label>to E1</label>
+                    <input type="range" id="w21" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
+                    <span id="val-w21" class="val-display">0.5</span>
+                </div>
+                <div class="slider-group">
+                    <label>to E2</label>
+                    <input type="range" id="w22" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
+                    <span id="val-w22" class="val-display">0.5</span>
+                </div>
+                <div class="slider-group">
+                    <label>to E3</label>
+                    <input type="range" id="w23" min="-1" max="1" step="0.05" value="-0.5" oninput="update()">
+                    <span id="val-w23" class="val-display">-0.5</span>
+                </div>
+            </div>
+
+            <!-- Matrix Row 3 (Component 3 weights) -->
+            <div class="weight-row" style="border-left: 5px solid #2ecc71;">
+                <div class="component-label c3-color">C3</div>
+                <div class="slider-group">
+                    <label>to E1</label>
+                    <input type="range" id="w31" min="-1" max="1" step="0.05" value="1.0" oninput="update()">
+                    <span id="val-w31" class="val-display">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>to E2</label>
+                    <input type="range" id="w32" min="-1" max="1" step="0.05" value="0.75" oninput="update()">
+                    <span id="val-w32" class="val-display">0.75</span>
+                </div>
+                <div class="slider-group">
+                    <label>to E3</label>
+                    <input type="range" id="w33" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
+                    <span id="val-w33" class="val-display">0.5</span>
+                </div>
+            </div>
+            
+            <button onclick="resetDefaults()" style="margin-top:20px; padding: 8px 16px; cursor:pointer;">Reset to Slide Defaults</button>
+        </div>
+
+        <!-- COLUMN 3: OBSERVED -->
+        <div>
+            <div class="col-header">Observed at Electrodes</div>
+            <div id="plot-e1" class="plot-wrapper"><div class="label-badge" style="color:#007bff">E1</div></div>
+            <div id="plot-e2" class="plot-wrapper"><div class="label-badge" style="color:#007bff">E2</div></div>
+            <div id="plot-e3" class="plot-wrapper"><div class="label-badge" style="color:#007bff">E3</div></div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Setup Time Vector (0 to 500ms)
+        const time = [];
+        for (let i = 0; i <= 500; i+=5) { time.push(i); }
+
+        // 2. Define Source Functions (Gaussian-like shapes to mimic the slide)
+        function gaussian(t, peakTime, width, amp) {
+            return amp * Math.exp(-0.5 * Math.pow((t - peakTime) / width, 2));
+        }
+
+        // C1: Visual (Early peak ~100ms)
+        const c1_data = time.map(t => gaussian(t, 100, 30, 1.0));
+        
+        // C2: Stimulus (Dip ~170ms, mimicking N170)
+        const c2_data = time.map(t => gaussian(t, 180, 35, -1.0));
+
+        // C3: Attention (Late broad peak ~300ms, mimicking P300)
+        const c3_data = time.map(t => gaussian(t, 320, 50, 0.8));
+
+        // 3. Plotting Configuration
+        const layoutConfig = {
+            margin: { t: 20, b: 30, l: 30, r: 10 },
+            xaxis: { title: '', range: [0, 500], showgrid: false },
+            yaxis: { range: [-2, 2], showticklabels: false, showgrid: false, zeroline: true },
+            showlegend: false,
+            height: 180
+        };
+
+        const config = { staticPlot: true, responsive: true };
+
+        // 4. Initialize Source Plots (Left Column)
+        Plotly.newPlot('plot-c1', [{ x: time, y: c1_data, mode: 'lines', line: { color: '#e67e22', width: 3 } }], layoutConfig, config);
+        Plotly.newPlot('plot-c2', [{ x: time, y: c2_data, mode: 'lines', line: { color: '#e74c3c', width: 3 } }], layoutConfig, config);
+        Plotly.newPlot('plot-c3', [{ x: time, y: c3_data, mode: 'lines', line: { color: '#2ecc71', width: 3 } }], layoutConfig, config);
+
+        // 5. Initialize Observed Plots (Right Column) - placeholders
+        Plotly.newPlot('plot-e1', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
+        Plotly.newPlot('plot-e2', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
+        Plotly.newPlot('plot-e3', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
+
+        // 6. Update Function
+        function update() {
+            // Get Weight Values
+            const w11 = parseFloat(document.getElementById('w11').value);
+            const w12 = parseFloat(document.getElementById('w12').value);
+            const w13 = parseFloat(document.getElementById('w13').value);
+            
+            const w21 = parseFloat(document.getElementById('w21').value);
+            const w22 = parseFloat(document.getElementById('w22').value);
+            const w23 = parseFloat(document.getElementById('w23').value);
+            
+            const w31 = parseFloat(document.getElementById('w31').value);
+            const w32 = parseFloat(document.getElementById('w32').value);
+            const w33 = parseFloat(document.getElementById('w33').value);
+
+            // Update Text Displays
+            document.getElementById('val-w11').innerText = w11;
+            document.getElementById('val-w12').innerText = w12;
+            document.getElementById('val-w13').innerText = w13;
+            document.getElementById('val-w21').innerText = w21;
+            document.getElementById('val-w22').innerText = w22;
+            document.getElementById('val-w23').innerText = w23;
+            document.getElementById('val-w31').innerText = w31;
+            document.getElementById('val-w32').innerText = w32;
+            document.getElementById('val-w33').innerText = w33;
+
+            // Calculate Observed Waveforms (Linear Combination)
+            const e1_data = [];
+            const e2_data = [];
+            const e3_data = [];
+
+            for (let i = 0; i < time.length; i++) {
+                // E1 = w11*C1 + w21*C2 + w31*C3
+                e1_data.push( (w11 * c1_data[i]) + (w21 * c2_data[i]) + (w31 * c3_data[i]) );
+                
+                // E2 = w12*C1 + w22*C2 + w32*C3
+                e2_data.push( (w12 * c1_data[i]) + (w22 * c2_data[i]) + (w32 * c3_data[i]) );
+
+                // E3 = w13*C1 + w23*C2 + w33*C3
+                e3_data.push( (w13 * c1_data[i]) + (w23 * c2_data[i]) + (w33 * c3_data[i]) );
+            }
+
+            // Update Plots (using Plotly.react for efficiency)
+            Plotly.react('plot-e1', [{ x: time, y: e1_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
+            Plotly.react('plot-e2', [{ x: time, y: e2_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
+            Plotly.react('plot-e3', [{ x: time, y: e3_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
+        }
+
+        // Helper to reset
+        function resetDefaults() {
+            // Values from the slide image
+            document.getElementById('w11').value = 1; document.getElementById('w12').value = 0.25; document.getElementById('w13').value = 0.5;
+            document.getElementById('w21').value = 0.5; document.getElementById('w22').value = 0.5; document.getElementById('w23').value = -0.5;
+            document.getElementById('w31').value = 1; document.getElementById('w32').value = 0.75; document.getElementById('w33').value = 0.5;
+            update();
+        }
+
+        // Run on load
+        update();
+
+    </script>
+</body>
+</html>
