@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EEG Source Mixing Demo</title>
-    <!-- Load Plotly.js for graphing -->
+    <title>EEG Convolution & Mixing Demo</title>
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f9;
+            background-color: #f8f9fa;
             color: #333;
             margin: 0;
             padding: 20px;
@@ -18,310 +17,522 @@
             align-items: center;
         }
 
-        h1 { margin-bottom: 10px; }
-        p { margin-bottom: 30px; color: #666; max-width: 800px; text-align: center; }
+        h1 { margin-bottom: 5px; }
+        p.subtitle { margin-bottom: 25px; color: #666; text-align: center; max-width: 800px; }
 
-        /* Main Grid Layout */
-        .app-container {
+        /* --- Graph Section --- */
+        .graphs-container {
             display: grid;
-            grid-template-columns: 1fr 0.8fr 1fr; /* Source - Weights - Observed */
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
             width: 100%;
-            max-width: 1400px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 1200px;
+            margin-bottom: 30px;
         }
 
-        /* Column Headers */
-        .col-header {
+        .graph-column h2 {
             text-align: center;
-            font-weight: bold;
             font-size: 1.2rem;
-            margin-bottom: 20px;
             border-bottom: 2px solid #ddd;
             padding-bottom: 10px;
+            margin-bottom: 15px;
         }
 
-        /* Plot Containers */
         .plot-wrapper {
-            height: 180px;
-            margin-bottom: 10px;
+            height: 160px;
+            margin-bottom: 15px;
             position: relative;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
         }
-        
+
         .label-badge {
             position: absolute;
-            left: 10px;
-            top: 10px;
-            background: #eee;
+            left: 5px;
+            top: 5px;
             padding: 2px 8px;
             border-radius: 4px;
             font-weight: bold;
             z-index: 10;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #ccc;
         }
 
-        /* Matrix Controls Styling */
-        .matrix-container {
+        /* --- Mixing Module (Bottom) --- */
+        .mixing-module {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            height: 100%;
         }
 
-        .weight-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            width: 100%;
-            justify-content: space-between;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 8px;
-            border: 1px solid #eee;
-        }
-
-        .component-label {
+        .module-header {
+            font-size: 1.3rem;
             font-weight: bold;
-            width: 40px;
-            text-align: right;
-            margin-right: 10px;
+            margin-bottom: 20px;
+            color: #444;
+        }
+
+        /* Network Diagram (SVG) */
+        .network-container {
+            width: 100%;
+            max-width: 800px;
+            height: 350px;
+            margin-bottom: 20px;
+            user-select: none;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* SVG Elements */
+        .node-circle { fill: #fff; stroke-width: 3px; }
+        .node-text { font-weight: bold; font-size: 14px; text-anchor: middle; dominant-baseline: middle; fill: #555; pointer-events: none;}
+        
+        .connection-path {
+            fill: none;
+            cursor: pointer;
+            transition: stroke-width 0.2s, stroke-opacity 0.2s;
+        }
+        .connection-path:hover { stroke-width: 5px; }
+        
+        /* Click area for easier selecting */
+        .click-path {
+            fill: none;
+            stroke: transparent;
+            stroke-width: 20px;
+            cursor: pointer;
+        }
+
+        .weight-label-bg { fill: white; opacity: 0.8; }
+        .weight-label-text { 
+            font-size: 12px; 
+            font-weight: bold; 
+            text-anchor: middle; 
+            dominant-baseline: middle; 
+            pointer-events: none;
+        }
+
+        /* --- Controls & Sliders --- */
+        .controls-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            width: 100%;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
         }
 
         .slider-group {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            margin: 0 5px;
-            flex: 1;
+            width: 120px;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 6px;
+            border-top: 4px solid #ccc;
         }
 
-        .slider-group label {
-            font-size: 0.75rem;
-            margin-bottom: 2px;
-            color: #555;
+        .slider-group label { font-size: 0.8rem; margin-bottom: 5px; font-weight: bold; }
+        .slider-group input { width: 100%; cursor: pointer; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
         }
 
-        input[type=range] {
-            width: 100%;
-            cursor: pointer;
-        }
-
-        .val-display {
-            font-size: 0.8rem;
-            color: #007bff;
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
             font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
         }
+        button:hover { opacity: 0.9; }
+        .btn-reset { background: #34495e; color: white; }
+        .btn-zero { background: #e74c3c; color: white; }
+        .btn-random { background: #f1c40f; color: #333; }
 
-        /* Color coding to match typical EEG diagrams */
-        .c1-color { color: #e67e22; border-color: #e67e22; }
-        .c2-color { color: #e74c3c; border-color: #e74c3c; }
-        .c3-color { color: #2ecc71; border-color: #2ecc71; }
+        /* Colors */
+        .c1-style { stroke: #e67e22; color: #e67e22; border-color: #e67e22; }
+        .c2-style { stroke: #c0392b; color: #c0392b; border-color: #c0392b; }
+        .c3-style { stroke: #27ae60; color: #27ae60; border-color: #27ae60; }
+        .e-style { stroke: #2980b9; color: #2980b9; }
 
-        @media (max-width: 900px) {
-            .app-container {
-                grid-template-columns: 1fr;
-            }
-        }
     </style>
 </head>
 <body>
 
-    <h1>EEG Linear Superposition Demo</h1>
-    <p>
-        Adjust the weights (arrows) in the center matrix to see how Source Components (Left) 
-        combine mathematically to create Observed Waveforms (Right).
-        <br><i>Formula: Observed = Σ (Weight × Source)</i>
+    <h1>EEG Convolution Demo</h1>
+    <p class="subtitle">
+        Visualizing how source waveforms mix to create observed electrode data.<br>
+        <strong>Interactive:</strong> Click the arrows in the diagram to toggle connections ON/OFF. Use sliders to adjust weight strength.
     </p>
 
-    <div class="app-container">
+    <!-- Top Section: Graphs -->
+    <div class="graphs-container">
         
-        <!-- COLUMN 1: SOURCES -->
-        <div>
-            <div class="col-header">Source Components</div>
-            <div id="plot-c1" class="plot-wrapper"><div class="label-badge c1-color" style="border: 2px solid">C1: Visual</div></div>
-            <div id="plot-c2" class="plot-wrapper"><div class="label-badge c2-color" style="border: 2px solid">C2: Stimulus</div></div>
-            <div id="plot-c3" class="plot-wrapper"><div class="label-badge c3-color" style="border: 2px solid">C3: Attention</div></div>
+        <!-- Left: Sources -->
+        <div class="graph-column">
+            <h2>Source Waveforms (Components)</h2>
+            <div id="plot-c1" class="plot-wrapper"><div class="label-badge" style="color:#e67e22; border-color:#e67e22">C1 (Visual)</div></div>
+            <div id="plot-c2" class="plot-wrapper"><div class="label-badge" style="color:#c0392b; border-color:#c0392b">C2 (Stimulus)</div></div>
+            <div id="plot-c3" class="plot-wrapper"><div class="label-badge" style="color:#27ae60; border-color:#27ae60">C3 (Attention)</div></div>
         </div>
 
-        <!-- COLUMN 2: WEIGHT MATRIX -->
-        <div class="matrix-container">
-            <div class="col-header">Mixing Weights (W)</div>
-            
-            <!-- Matrix Row 1 (Component 1 weights) -->
-            <div class="weight-row" style="border-left: 5px solid #e67e22;">
-                <div class="component-label c1-color">C1</div>
-                <div class="slider-group">
-                    <label>to E1</label>
-                    <input type="range" id="w11" min="-1" max="1" step="0.05" value="1.0" oninput="update()">
-                    <span id="val-w11" class="val-display">1.0</span>
-                </div>
-                <div class="slider-group">
-                    <label>to E2</label>
-                    <input type="range" id="w12" min="-1" max="1" step="0.05" value="0.25" oninput="update()">
-                    <span id="val-w12" class="val-display">0.25</span>
-                </div>
-                <div class="slider-group">
-                    <label>to E3</label>
-                    <input type="range" id="w13" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
-                    <span id="val-w13" class="val-display">0.5</span>
-                </div>
-            </div>
+        <!-- Right: Observed -->
+        <div class="graph-column">
+            <h2>Observed Waveforms (Electrodes)</h2>
+            <div id="plot-e1" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E1</div></div>
+            <div id="plot-e2" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E2</div></div>
+            <div id="plot-e3" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E3</div></div>
+        </div>
+    </div>
 
-            <!-- Matrix Row 2 (Component 2 weights) -->
-            <div class="weight-row" style="border-left: 5px solid #e74c3c;">
-                <div class="component-label c2-color">C2</div>
-                <div class="slider-group">
-                    <label>to E1</label>
-                    <input type="range" id="w21" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
-                    <span id="val-w21" class="val-display">0.5</span>
-                </div>
-                <div class="slider-group">
-                    <label>to E2</label>
-                    <input type="range" id="w22" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
-                    <span id="val-w22" class="val-display">0.5</span>
-                </div>
-                <div class="slider-group">
-                    <label>to E3</label>
-                    <input type="range" id="w23" min="-1" max="1" step="0.05" value="-0.5" oninput="update()">
-                    <span id="val-w23" class="val-display">-0.5</span>
-                </div>
-            </div>
+    <!-- Bottom Section: Mixing Module -->
+    <div class="mixing-module">
+        <div class="module-header">Mixing Weights & Network Diagram</div>
 
-            <!-- Matrix Row 3 (Component 3 weights) -->
-            <div class="weight-row" style="border-left: 5px solid #2ecc71;">
-                <div class="component-label c3-color">C3</div>
-                <div class="slider-group">
-                    <label>to E1</label>
-                    <input type="range" id="w31" min="-1" max="1" step="0.05" value="1.0" oninput="update()">
-                    <span id="val-w31" class="val-display">1.0</span>
-                </div>
-                <div class="slider-group">
-                    <label>to E2</label>
-                    <input type="range" id="w32" min="-1" max="1" step="0.05" value="0.75" oninput="update()">
-                    <span id="val-w32" class="val-display">0.75</span>
-                </div>
-                <div class="slider-group">
-                    <label>to E3</label>
-                    <input type="range" id="w33" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
-                    <span id="val-w33" class="val-display">0.5</span>
-                </div>
-            </div>
-            
-            <button onclick="resetDefaults()" style="margin-top:20px; padding: 8px 16px; cursor:pointer;">Reset to Slide Defaults</button>
+        <!-- SVG Network Diagram -->
+        <div class="network-container" id="network-diagram">
+            <!-- SVG injected by JS -->
         </div>
 
-        <!-- COLUMN 3: OBSERVED -->
-        <div>
-            <div class="col-header">Observed at Electrodes</div>
-            <div id="plot-e1" class="plot-wrapper"><div class="label-badge" style="color:#007bff">E1</div></div>
-            <div id="plot-e2" class="plot-wrapper"><div class="label-badge" style="color:#007bff">E2</div></div>
-            <div id="plot-e3" class="plot-wrapper"><div class="label-badge" style="color:#007bff">E3</div></div>
+        <!-- Action Buttons -->
+        <div class="btn-group">
+            <button class="btn-reset" onclick="setDefaults()">Reset to Default</button>
+            <button class="btn-zero" onclick="setZero()">Set to Zero</button>
+            <button class="btn-random" onclick="setRandom()">Set to Random</button>
+        </div>
+
+        <!-- Sliders (Hidden logic visually, but present for fine tuning) -->
+        <div class="controls-area">
+            <!-- Generated by JS -->
         </div>
     </div>
 
     <script>
-        // 1. Setup Time Vector (0 to 500ms)
-        const time = [];
-        for (let i = 0; i <= 500; i+=5) { time.push(i); }
-
-        // 2. Define Source Functions (Gaussian-like shapes to mimic the slide)
-        function gaussian(t, peakTime, width, amp) {
-            return amp * Math.exp(-0.5 * Math.pow((t - peakTime) / width, 2));
-        }
-
-        // C1: Visual (Early peak ~100ms)
-        const c1_data = time.map(t => gaussian(t, 100, 30, 1.0));
+        // --- 1. DATA & STATE ---
         
-        // C2: Stimulus (Dip ~170ms, mimicking N170)
-        const c2_data = time.map(t => gaussian(t, 180, 35, -1.0));
+        // Time vector 0-500ms
+        const time = Array.from({length: 101}, (_, i) => i * 5);
 
-        // C3: Attention (Late broad peak ~300ms, mimicking P300)
-        const c3_data = time.map(t => gaussian(t, 320, 50, 0.8));
+        // Gaussian function
+        const gaussian = (t, peak, width, amp) => amp * Math.exp(-0.5 * Math.pow((t - peak) / width, 2));
 
-        // 3. Plotting Configuration
-        const layoutConfig = {
-            margin: { t: 20, b: 30, l: 30, r: 10 },
-            xaxis: { title: '', range: [0, 500], showgrid: false },
-            yaxis: { range: [-2, 2], showticklabels: false, showgrid: false, zeroline: true },
-            showlegend: false,
-            height: 180
+        // Source Signals
+        const sources = {
+            c1: time.map(t => gaussian(t, 100, 30, 1.0)),  // Visual
+            c2: time.map(t => gaussian(t, 180, 35, -1.0)), // N170
+            c3: time.map(t => gaussian(t, 320, 50, 0.8))   // P300
         };
 
+        // Application State (Weights & Active Status)
+        // Rows = Components (1,2,3), Cols = Electrodes (1,2,3)
+        // Format: w[row][col]
+        let state = [
+            [{val: 1.0, active: true}, {val: 0.25, active: true}, {val: 0.5, active: true}], // C1 weights
+            [{val: 0.5, active: true}, {val: 0.5, active: true}, {val: -0.5, active: true}], // C2 weights
+            [{val: 1.0, active: true}, {val: 0.75, active: true}, {val: 0.5, active: true}]  // C3 weights
+        ];
+
+        // --- 2. PLOTLY SETUP ---
+
+        const layoutBase = {
+            margin: { t: 25, b: 25, l: 30, r: 10 },
+            xaxis: { range: [0, 500], showgrid: false, zeroline: false },
+            yaxis: { range: [-2.2, 2.2], showticklabels: false, showgrid: false, zeroline: true },
+            showlegend: false,
+            height: 160
+        };
         const config = { staticPlot: true, responsive: true };
 
-        // 4. Initialize Source Plots (Left Column)
-        Plotly.newPlot('plot-c1', [{ x: time, y: c1_data, mode: 'lines', line: { color: '#e67e22', width: 3 } }], layoutConfig, config);
-        Plotly.newPlot('plot-c2', [{ x: time, y: c2_data, mode: 'lines', line: { color: '#e74c3c', width: 3 } }], layoutConfig, config);
-        Plotly.newPlot('plot-c3', [{ x: time, y: c3_data, mode: 'lines', line: { color: '#2ecc71', width: 3 } }], layoutConfig, config);
+        // Initialize Source Plots
+        Plotly.newPlot('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], layoutBase, config);
+        Plotly.newPlot('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], layoutBase, config);
+        Plotly.newPlot('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], layoutBase, config);
 
-        // 5. Initialize Observed Plots (Right Column) - placeholders
-        Plotly.newPlot('plot-e1', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
-        Plotly.newPlot('plot-e2', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
-        Plotly.newPlot('plot-e3', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
+        // Initialize Observed Plots (Empty initially)
+        Plotly.newPlot('plot-e1', [{x: time, y: time.map(()=>0), line:{color: '#2980b9', width: 3}}], layoutBase, config);
+        Plotly.newPlot('plot-e2', [{x: time, y: time.map(()=>0), line:{color: '#2980b9', width: 3}}], layoutBase, config);
+        Plotly.newPlot('plot-e3', [{x: time, y: time.map(()=>0), line:{color: '#2980b9', width: 3}}], layoutBase, config);
 
-        // 6. Update Function
-        function update() {
-            // Get Weight Values
-            const w11 = parseFloat(document.getElementById('w11').value);
-            const w12 = parseFloat(document.getElementById('w12').value);
-            const w13 = parseFloat(document.getElementById('w13').value);
-            
-            const w21 = parseFloat(document.getElementById('w21').value);
-            const w22 = parseFloat(document.getElementById('w22').value);
-            const w23 = parseFloat(document.getElementById('w23').value);
-            
-            const w31 = parseFloat(document.getElementById('w31').value);
-            const w32 = parseFloat(document.getElementById('w32').value);
-            const w33 = parseFloat(document.getElementById('w33').value);
+        // --- 3. LOGIC & UPDATES ---
 
-            // Update Text Displays
-            document.getElementById('val-w11').innerText = w11;
-            document.getElementById('val-w12').innerText = w12;
-            document.getElementById('val-w13').innerText = w13;
-            document.getElementById('val-w21').innerText = w21;
-            document.getElementById('val-w22').innerText = w22;
-            document.getElementById('val-w23').innerText = w23;
-            document.getElementById('val-w31').innerText = w31;
-            document.getElementById('val-w32').innerText = w32;
-            document.getElementById('val-w33').innerText = w33;
+        function updateAll() {
+            updateCalculations();
+            renderNetwork();
+            updateSliders();
+        }
 
-            // Calculate Observed Waveforms (Linear Combination)
-            const e1_data = [];
-            const e2_data = [];
-            const e3_data = [];
+        function updateCalculations() {
+            const e1 = [], e2 = [], e3 = [];
 
-            for (let i = 0; i < time.length; i++) {
-                // E1 = w11*C1 + w21*C2 + w31*C3
-                e1_data.push( (w11 * c1_data[i]) + (w21 * c2_data[i]) + (w31 * c3_data[i]) );
-                
-                // E2 = w12*C1 + w22*C2 + w32*C3
-                e2_data.push( (w12 * c1_data[i]) + (w22 * c2_data[i]) + (w32 * c3_data[i]) );
+            for(let i=0; i<time.length; i++) {
+                // Determine effective weight (Value * ActiveStatus)
+                const w11 = state[0][0].active ? state[0][0].val : 0;
+                const w12 = state[0][1].active ? state[0][1].val : 0;
+                const w13 = state[0][2].active ? state[0][2].val : 0;
 
-                // E3 = w13*C1 + w23*C2 + w33*C3
-                e3_data.push( (w13 * c1_data[i]) + (w23 * c2_data[i]) + (w33 * c3_data[i]) );
+                const w21 = state[1][0].active ? state[1][0].val : 0;
+                const w22 = state[1][1].active ? state[1][1].val : 0;
+                const w23 = state[1][2].active ? state[1][2].val : 0;
+
+                const w31 = state[2][0].active ? state[2][0].val : 0;
+                const w32 = state[2][1].active ? state[2][1].val : 0;
+                const w33 = state[2][2].active ? state[2][2].val : 0;
+
+                // Summation
+                e1.push(w11*sources.c1[i] + w21*sources.c2[i] + w31*sources.c3[i]);
+                e2.push(w12*sources.c1[i] + w22*sources.c2[i] + w32*sources.c3[i]);
+                e3.push(w13*sources.c1[i] + w23*sources.c2[i] + w33*sources.c3[i]);
             }
 
-            // Update Plots (using Plotly.react for efficiency)
-            Plotly.react('plot-e1', [{ x: time, y: e1_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
-            Plotly.react('plot-e2', [{ x: time, y: e2_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
-            Plotly.react('plot-e3', [{ x: time, y: e3_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
+            Plotly.react('plot-e1', [{x: time, y: e1, line:{color: '#2980b9', width: 3}}], layoutBase, config);
+            Plotly.react('plot-e2', [{x: time, y: e2, line:{color: '#2980b9', width: 3}}], layoutBase, config);
+            Plotly.react('plot-e3', [{x: time, y: e3, line:{color: '#2980b9', width: 3}}], layoutBase, config);
         }
 
-        // Helper to reset
-        function resetDefaults() {
-            // Values from the slide image
-            document.getElementById('w11').value = 1; document.getElementById('w12').value = 0.25; document.getElementById('w13').value = 0.5;
-            document.getElementById('w21').value = 0.5; document.getElementById('w22').value = 0.5; document.getElementById('w23').value = -0.5;
-            document.getElementById('w31').value = 1; document.getElementById('w32').value = 0.75; document.getElementById('w33').value = 0.5;
-            update();
+        // --- 4. NETWORK DIAGRAM VISUALIZATION ---
+        
+        const svgNS = "http://www.w3.org/2000/svg";
+        const container = document.getElementById('network-diagram');
+        
+        // Coordinates
+        const cX = 100, eX = 700;
+        const yPos = [60, 175, 290]; // Top, Mid, Bottom
+
+        function renderNetwork() {
+            container.innerHTML = ''; // Clear existing
+            
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("viewBox", "0 0 800 350");
+
+            // Define Arrow Marker
+            const defs = document.createElementNS(svgNS, "defs");
+            const marker = document.createElementNS(svgNS, "marker");
+            marker.setAttribute("id", "arrowhead");
+            marker.setAttribute("markerWidth", "10");
+            marker.setAttribute("markerHeight", "7");
+            marker.setAttribute("refX", "9");
+            marker.setAttribute("refY", "3.5");
+            marker.setAttribute("orient", "auto");
+            const polygon = document.createElementNS(svgNS, "polygon");
+            polygon.setAttribute("points", "0 0, 10 3.5, 0 7");
+            polygon.setAttribute("fill", "#555");
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+
+            // Draw Connections (Components to Electrodes)
+            const colors = ['#e67e22', '#c0392b', '#27ae60']; // C1, C2, C3
+
+            for (let r=0; r<3; r++) { // Source Row
+                for (let c=0; c<3; c++) { // Electrode Col
+                    
+                    const w = state[r][c];
+                    const startY = yPos[r];
+                    const endY = yPos[c];
+                    
+                    const isActive = w.active;
+                    const val = w.val;
+                    const absVal = Math.abs(val);
+
+                    // Group for layering
+                    const g = document.createElementNS(svgNS, "g");
+                    
+                    // Bezier Curve for nice flow
+                    const pathD = `M ${cX} ${startY} C ${cX+300} ${startY}, ${eX-300} ${endY}, ${eX-15} ${endY}`;
+                    
+                    // Visual Path (The colored line)
+                    const path = document.createElementNS(svgNS, "path");
+                    path.setAttribute("d", pathD);
+                    path.setAttribute("class", "connection-path");
+                    path.setAttribute("marker-end", "url(#arrowhead)");
+                    
+                    // Styling based on state
+                    if (isActive) {
+                        path.setAttribute("stroke", colors[r]);
+                        path.setAttribute("stroke-width", Math.max(1, absVal * 6)); // Thickness based on weight
+                        path.setAttribute("stroke-opacity", 1);
+                        if(val === 0) path.setAttribute("stroke-opacity", 0.2); // Visible but faint if 0
+                    } else {
+                        path.setAttribute("stroke", "#ccc");
+                        path.setAttribute("stroke-width", 2);
+                        path.setAttribute("stroke-dasharray", "5,5"); // Dashed for inactive
+                    }
+
+                    // Click Area (Invisible wide path for easier clicking)
+                    const hitPath = document.createElementNS(svgNS, "path");
+                    hitPath.setAttribute("d", pathD);
+                    hitPath.setAttribute("class", "click-path");
+                    hitPath.onclick = () => toggleWeight(r, c);
+
+                    // Text Label (Background Rect)
+                    const midX = (cX + eX) / 2;
+                    const midY = (startY + endY) / 2;
+                    const rect = document.createElementNS(svgNS, "rect");
+                    rect.setAttribute("x", midX - 15);
+                    rect.setAttribute("y", midY - 10);
+                    rect.setAttribute("width", 30);
+                    rect.setAttribute("height", 20);
+                    rect.setAttribute("class", "weight-label-bg");
+
+                    // Text Value
+                    const text = document.createElementNS(svgNS, "text");
+                    text.setAttribute("x", midX);
+                    text.setAttribute("y", midY);
+                    text.setAttribute("class", "weight-label-text");
+                    text.textContent = val.toFixed(2);
+                    if (!isActive) text.setAttribute("fill", "#bbb");
+                    else text.setAttribute("fill", "#000");
+
+                    g.appendChild(path);
+                    g.appendChild(hitPath); // Put hit area on top of line
+                    g.appendChild(rect);
+                    g.appendChild(text);
+                    svg.appendChild(g);
+                }
+            }
+
+            // Draw Nodes (Circles) ON TOP
+            // Source Nodes
+            ['C1', 'C2', 'C3'].forEach((name, i) => {
+                const g = document.createElementNS(svgNS, "g");
+                const circle = document.createElementNS(svgNS, "circle");
+                circle.setAttribute("cx", cX);
+                circle.setAttribute("cy", yPos[i]);
+                circle.setAttribute("r", 25);
+                circle.setAttribute("class", "node-circle c"+(i+1)+"-style");
+                
+                const text = document.createElementNS(svgNS, "text");
+                text.setAttribute("x", cX);
+                text.setAttribute("y", yPos[i]);
+                text.setAttribute("class", "node-text");
+                text.textContent = name;
+
+                g.appendChild(circle);
+                g.appendChild(text);
+                svg.appendChild(g);
+            });
+
+            // Electrode Nodes
+            ['E1', 'E2', 'E3'].forEach((name, i) => {
+                const g = document.createElementNS(svgNS, "g");
+                const circle = document.createElementNS(svgNS, "circle");
+                circle.setAttribute("cx", eX);
+                circle.setAttribute("cy", yPos[i]);
+                circle.setAttribute("r", 25);
+                circle.setAttribute("class", "node-circle e-style");
+                
+                const text = document.createElementNS(svgNS, "text");
+                text.setAttribute("x", eX);
+                text.setAttribute("y", yPos[i]);
+                text.setAttribute("class", "node-text");
+                text.textContent = name;
+
+                g.appendChild(circle);
+                g.appendChild(text);
+                svg.appendChild(g);
+            });
+
+            container.appendChild(svg);
         }
 
-        // Run on load
-        update();
+        // --- 5. SLIDER CONTROLS GENERATION ---
+        
+        function updateSliders() {
+            const container = document.querySelector('.controls-area');
+            container.innerHTML = '';
+
+            const colors = ['#e67e22', '#c0392b', '#27ae60'];
+
+            for (let r=0; r<3; r++) {
+                for (let c=0; c<3; c++) {
+                    const grp = document.createElement('div');
+                    grp.className = 'slider-group';
+                    grp.style.borderTopColor = colors[r];
+
+                    const label = document.createElement('label');
+                    label.innerText = `C${r+1} → E${c+1}`;
+                    
+                    const input = document.createElement('input');
+                    input.type = 'range';
+                    input.min = -1;
+                    input.max = 1;
+                    input.step = 0.05;
+                    input.value = state[r][c].val;
+                    
+                    // If inactive, disable slider? Or just let it change the underlying value?
+                    // Let's let it change underlying value but maybe dim it.
+                    if (!state[r][c].active) grp.style.opacity = 0.5;
+
+                    input.oninput = (e) => {
+                        state[r][c].val = parseFloat(e.target.value);
+                        updateAll(); // Re-render everything
+                    };
+
+                    grp.appendChild(label);
+                    grp.appendChild(input);
+                    container.appendChild(grp);
+                }
+            }
+        }
+
+        // --- 6. ACTIONS ---
+
+        function toggleWeight(r, c) {
+            state[r][c].active = !state[r][c].active;
+            updateAll();
+        }
+
+        function setDefaults() {
+            // Values from slide
+            state = [
+                [{val: 1.0, active: true}, {val: 0.25, active: true}, {val: 0.5, active: true}],
+                [{val: 0.5, active: true}, {val: 0.5, active: true}, {val: -0.5, active: true}],
+                [{val: 1.0, active: true}, {val: 0.75, active: true}, {val: 0.5, active: true}]
+            ];
+            updateAll();
+        }
+
+        function setZero() {
+            for(let r=0; r<3; r++) 
+                for(let c=0; c<3; c++) {
+                    state[r][c].val = 0;
+                    state[r][c].active = true;
+                }
+            updateAll();
+        }
+
+        function setRandom() {
+            for(let r=0; r<3; r++) 
+                for(let c=0; c<3; c++) {
+                    // Random between -1 and 1
+                    state[r][c].val = parseFloat((Math.random() * 2 - 1).toFixed(2));
+                    state[r][c].active = true;
+                }
+            updateAll();
+        }
+
+        // --- INIT ---
+        window.onload = function() {
+            updateAll();
+        }
 
     </script>
 </body>
