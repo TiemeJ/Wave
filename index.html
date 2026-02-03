@@ -309,25 +309,26 @@
 
         // --- 2. PLOTLY SETUP ---
 
-        const layout = {
+        const getLayout = () => ({
             margin: { t: 25, b: 25, l: 30, r: 10 },
             xaxis: { range: [0, 500], showgrid: false, zeroline: false },
             yaxis: { range: [-1.5, 1.5], showticklabels: false, showgrid: false, zeroline: true },
             showlegend: false,
-            height: 160 // Matches CSS height
-        };
+            height: 160, // Matches CSS height
+            autosize: true
+        });
         const config = { staticPlot: true, responsive: true };
 
         // Draw Sources
-        Plotly.newPlot('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], layout, config);
-        Plotly.newPlot('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], layout, config);
-        Plotly.newPlot('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], layout, config);
+        Plotly.newPlot('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), config);
+        Plotly.newPlot('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), config);
+        Plotly.newPlot('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), config);
 
         // Draw Observed (Placeholders)
         const blueLine = {color: '#2980b9', width: 3};
-        Plotly.newPlot('plot-e1', [{x: time, y: [], line: blueLine}], layout, config);
-        Plotly.newPlot('plot-e2', [{x: time, y: [], line: blueLine}], layout, config);
-        Plotly.newPlot('plot-e3', [{x: time, y: [], line: blueLine}], layout, config);
+        Plotly.newPlot('plot-e1', [{x: time, y: [], line: blueLine}], getLayout(), config);
+        Plotly.newPlot('plot-e2', [{x: time, y: [], line: blueLine}], getLayout(), config);
+        Plotly.newPlot('plot-e3', [{x: time, y: [], line: blueLine}], getLayout(), config);
 
         // --- 3. MAIN UPDATE LOOP ---
 
@@ -368,9 +369,9 @@
                 e3[t] = (s1 * w13) + (s2 * w23) + (s3 * w33);
             }
 
-            Plotly.react('plot-e1', [{x: time, y: e1, line: blueLine}], layout, config);
-            Plotly.react('plot-e2', [{x: time, y: e2, line: blueLine}], layout, config);
-            Plotly.react('plot-e3', [{x: time, y: e3, line: blueLine}], layout, config);
+            Plotly.react('plot-e1', [{x: time, y: e1, line: blueLine}], getLayout(), config);
+            Plotly.react('plot-e2', [{x: time, y: e2, line: blueLine}], getLayout(), config);
+            Plotly.react('plot-e3', [{x: time, y: e3, line: blueLine}], getLayout(), config);
         }
 
         // --- 4. SVG DIAGRAM ---
@@ -614,6 +615,26 @@
             }));
             updateAll();
         }
+
+        // --- 7. WINDOW RESIZE HANDLER ---
+        
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            // Debounce resize events to avoid too many redraws
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                // Recreate all plots with fresh layout
+                Plotly.react('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), config);
+                Plotly.react('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), config);
+                Plotly.react('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), config);
+                
+                // Recalculate and redraw observed plots
+                updateCalculations();
+                
+                // Redraw SVG with new dimensions
+                renderSVG();
+            }, 100); // Wait 100ms after resize stops
+        });
 
         // --- INIT ---
         updateAll();
