@@ -670,6 +670,7 @@
                 let startPeak = 0;
                 let startAmp = 0;
 
+                // Mouse events
                 plotDiv.addEventListener('mousedown', (e) => {
                     if (e.button === 0) { // Left click
                         isDragging = true;
@@ -719,6 +720,48 @@
                     if (!isDragging) {
                         plotDiv.style.cursor = 'grab';
                     }
+                });
+
+                // Touch events
+                plotDiv.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 1) {
+                        isDragging = true;
+                        startX = e.touches[0].clientX;
+                        startY = e.touches[0].clientY;
+                        startPeak = sourceParams[plot.param].peak;
+                        startAmp = sourceParams[plot.param].amp;
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+
+                plotDiv.addEventListener('touchmove', (e) => {
+                    if (isDragging && e.touches.length === 1) {
+                        const deltaX = e.touches[0].clientX - startX;
+                        const deltaY = e.touches[0].clientY - startY;
+                        
+                        // Get plot dimensions to convert pixel movement to data coordinates
+                        const plotWidth = plotDiv.offsetWidth;
+                        const plotHeight = plotDiv.offsetHeight;
+                        
+                        // Horizontal drag: shift peak position
+                        const xShift = (deltaX / plotWidth) * 500;
+                        sourceParams[plot.param].peak = Math.max(0, Math.min(500, startPeak + xShift));
+                        
+                        // Vertical drag: change amplitude
+                        const yChange = -(deltaY / plotHeight) * 3;
+                        sourceParams[plot.param].amp = Math.max(-2, Math.min(2, startAmp + yChange));
+                        
+                        updateAll();
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+
+                plotDiv.addEventListener('touchend', () => {
+                    isDragging = false;
+                });
+
+                plotDiv.addEventListener('touchcancel', () => {
+                    isDragging = false;
                 });
             });
         }
