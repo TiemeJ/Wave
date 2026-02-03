@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EEG Source Mixing Demo (Positive Weights)</title>
+    <title>EEG Source Mixing Demo</title>
+    <!-- Load Plotly.js for graphing -->
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <style>
         body {
@@ -23,7 +24,7 @@
         /* Main Grid Layout */
         .app-container {
             display: grid;
-            grid-template-columns: 1fr 0.8fr 1fr;
+            grid-template-columns: 1fr 0.8fr 1fr; /* Source - Weights - Observed */
             gap: 20px;
             width: 100%;
             max-width: 1400px;
@@ -33,6 +34,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
+        /* Column Headers */
         .col-header {
             text-align: center;
             font-weight: bold;
@@ -42,6 +44,7 @@
             padding-bottom: 10px;
         }
 
+        /* Plot Containers */
         .plot-wrapper {
             height: 180px;
             margin-bottom: 10px;
@@ -60,6 +63,7 @@
             font-size: 0.9rem;
         }
 
+        /* Matrix Controls Styling */
         .matrix-container {
             display: flex;
             flex-direction: column;
@@ -101,7 +105,6 @@
             color: #555;
         }
 
-        /* Sliders */
         input[type=range] {
             width: 100%;
             cursor: pointer;
@@ -113,24 +116,15 @@
             font-weight: bold;
         }
 
+        /* Color coding to match typical EEG diagrams */
         .c1-color { color: #e67e22; border-color: #e67e22; }
         .c2-color { color: #e74c3c; border-color: #e74c3c; }
         .c3-color { color: #2ecc71; border-color: #2ecc71; }
 
-        button.reset-btn {
-            margin-top:20px; 
-            padding: 10px 20px; 
-            cursor:pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-        button.reset-btn:hover { background-color: #0056b3; }
-
         @media (max-width: 900px) {
-            .app-container { grid-template-columns: 1fr; }
+            .app-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -138,8 +132,8 @@
 
     <h1>EEG Linear Superposition Demo</h1>
     <p>
-        Adjust the connection weights (0 to 1) to see how Source Components mix 
-        to create Observed Waveforms at the electrodes.
+        Adjust the weights (arrows) in the center matrix to see how Source Components (Left) 
+        combine mathematically to create Observed Waveforms (Right).
         <br><i>Formula: Observed = Σ (Weight × Source)</i>
     </p>
 
@@ -155,69 +149,69 @@
 
         <!-- COLUMN 2: WEIGHT MATRIX -->
         <div class="matrix-container">
-            <div class="col-header">Weights (0.0 - 1.0)</div>
+            <div class="col-header">Mixing Weights (W)</div>
             
-            <!-- Matrix Row 1 -->
+            <!-- Matrix Row 1 (Component 1 weights) -->
             <div class="weight-row" style="border-left: 5px solid #e67e22;">
                 <div class="component-label c1-color">C1</div>
                 <div class="slider-group">
                     <label>to E1</label>
-                    <input type="range" id="w11" min="0" max="1" step="0.05" value="1.0" oninput="update()">
+                    <input type="range" id="w11" min="-1" max="1" step="0.05" value="1.0" oninput="update()">
                     <span id="val-w11" class="val-display">1.0</span>
                 </div>
                 <div class="slider-group">
                     <label>to E2</label>
-                    <input type="range" id="w12" min="0" max="1" step="0.05" value="0.25" oninput="update()">
+                    <input type="range" id="w12" min="-1" max="1" step="0.05" value="0.25" oninput="update()">
                     <span id="val-w12" class="val-display">0.25</span>
                 </div>
                 <div class="slider-group">
                     <label>to E3</label>
-                    <input type="range" id="w13" min="0" max="1" step="0.05" value="0.5" oninput="update()">
+                    <input type="range" id="w13" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
                     <span id="val-w13" class="val-display">0.5</span>
                 </div>
             </div>
 
-            <!-- Matrix Row 2 -->
+            <!-- Matrix Row 2 (Component 2 weights) -->
             <div class="weight-row" style="border-left: 5px solid #e74c3c;">
                 <div class="component-label c2-color">C2</div>
                 <div class="slider-group">
                     <label>to E1</label>
-                    <input type="range" id="w21" min="0" max="1" step="0.05" value="0.5" oninput="update()">
+                    <input type="range" id="w21" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
                     <span id="val-w21" class="val-display">0.5</span>
                 </div>
                 <div class="slider-group">
                     <label>to E2</label>
-                    <input type="range" id="w22" min="0" max="1" step="0.05" value="0.5" oninput="update()">
+                    <input type="range" id="w22" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
                     <span id="val-w22" class="val-display">0.5</span>
                 </div>
                 <div class="slider-group">
                     <label>to E3</label>
-                    <input type="range" id="w23" min="0" max="1" step="0.05" value="0.5" oninput="update()">
-                    <span id="val-w23" class="val-display">0.5</span>
+                    <input type="range" id="w23" min="-1" max="1" step="0.05" value="-0.5" oninput="update()">
+                    <span id="val-w23" class="val-display">-0.5</span>
                 </div>
             </div>
 
-            <!-- Matrix Row 3 -->
+            <!-- Matrix Row 3 (Component 3 weights) -->
             <div class="weight-row" style="border-left: 5px solid #2ecc71;">
                 <div class="component-label c3-color">C3</div>
                 <div class="slider-group">
                     <label>to E1</label>
-                    <input type="range" id="w31" min="0" max="1" step="0.05" value="1.0" oninput="update()">
+                    <input type="range" id="w31" min="-1" max="1" step="0.05" value="1.0" oninput="update()">
                     <span id="val-w31" class="val-display">1.0</span>
                 </div>
                 <div class="slider-group">
                     <label>to E2</label>
-                    <input type="range" id="w32" min="0" max="1" step="0.05" value="0.75" oninput="update()">
+                    <input type="range" id="w32" min="-1" max="1" step="0.05" value="0.75" oninput="update()">
                     <span id="val-w32" class="val-display">0.75</span>
                 </div>
                 <div class="slider-group">
                     <label>to E3</label>
-                    <input type="range" id="w33" min="0" max="1" step="0.05" value="0.5" oninput="update()">
+                    <input type="range" id="w33" min="-1" max="1" step="0.05" value="0.5" oninput="update()">
                     <span id="val-w33" class="val-display">0.5</span>
                 </div>
             </div>
             
-            <button class="reset-btn" onclick="resetDefaults()">Reset Weights</button>
+            <button onclick="resetDefaults()" style="margin-top:20px; padding: 8px 16px; cursor:pointer;">Reset to Slide Defaults</button>
         </div>
 
         <!-- COLUMN 3: OBSERVED -->
@@ -230,24 +224,25 @@
     </div>
 
     <script>
-        // --- 1. Data Generation ---
+        // 1. Setup Time Vector (0 to 500ms)
         const time = [];
         for (let i = 0; i <= 500; i+=5) { time.push(i); }
 
+        // 2. Define Source Functions (Gaussian-like shapes to mimic the slide)
         function gaussian(t, peakTime, width, amp) {
             return amp * Math.exp(-0.5 * Math.pow((t - peakTime) / width, 2));
         }
 
-        // C1: Visual (Positive peak)
+        // C1: Visual (Early peak ~100ms)
         const c1_data = time.map(t => gaussian(t, 100, 30, 1.0));
         
-        // C2: Stimulus (Negative dip, so it contributes 'negatively' even with positive weights)
+        // C2: Stimulus (Dip ~170ms, mimicking N170)
         const c2_data = time.map(t => gaussian(t, 180, 35, -1.0));
 
-        // C3: Attention (Positive late peak)
+        // C3: Attention (Late broad peak ~300ms, mimicking P300)
         const c3_data = time.map(t => gaussian(t, 320, 50, 0.8));
 
-        // --- 2. Plot Configuration ---
+        // 3. Plotting Configuration
         const layoutConfig = {
             margin: { t: 20, b: 30, l: 30, r: 10 },
             xaxis: { title: '', range: [0, 500], showgrid: false },
@@ -258,19 +253,19 @@
 
         const config = { staticPlot: true, responsive: true };
 
-        // --- 3. Initialize Source Plots ---
+        // 4. Initialize Source Plots (Left Column)
         Plotly.newPlot('plot-c1', [{ x: time, y: c1_data, mode: 'lines', line: { color: '#e67e22', width: 3 } }], layoutConfig, config);
         Plotly.newPlot('plot-c2', [{ x: time, y: c2_data, mode: 'lines', line: { color: '#e74c3c', width: 3 } }], layoutConfig, config);
         Plotly.newPlot('plot-c3', [{ x: time, y: c3_data, mode: 'lines', line: { color: '#2ecc71', width: 3 } }], layoutConfig, config);
 
-        // --- 4. Initialize Observed Plots ---
+        // 5. Initialize Observed Plots (Right Column) - placeholders
         Plotly.newPlot('plot-e1', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
         Plotly.newPlot('plot-e2', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
         Plotly.newPlot('plot-e3', [{ x: time, y: time.map(x=>0), mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
 
-        // --- 5. Update Logic ---
+        // 6. Update Function
         function update() {
-            // Fetch slider values
+            // Get Weight Values
             const w11 = parseFloat(document.getElementById('w11').value);
             const w12 = parseFloat(document.getElementById('w12').value);
             const w13 = parseFloat(document.getElementById('w13').value);
@@ -283,18 +278,18 @@
             const w32 = parseFloat(document.getElementById('w32').value);
             const w33 = parseFloat(document.getElementById('w33').value);
 
-            // Update text labels
-            document.getElementById('val-w11').innerText = w11.toFixed(2);
-            document.getElementById('val-w12').innerText = w12.toFixed(2);
-            document.getElementById('val-w13').innerText = w13.toFixed(2);
-            document.getElementById('val-w21').innerText = w21.toFixed(2);
-            document.getElementById('val-w22').innerText = w22.toFixed(2);
-            document.getElementById('val-w23').innerText = w23.toFixed(2);
-            document.getElementById('val-w31').innerText = w31.toFixed(2);
-            document.getElementById('val-w32').innerText = w32.toFixed(2);
-            document.getElementById('val-w33').innerText = w33.toFixed(2);
+            // Update Text Displays
+            document.getElementById('val-w11').innerText = w11;
+            document.getElementById('val-w12').innerText = w12;
+            document.getElementById('val-w13').innerText = w13;
+            document.getElementById('val-w21').innerText = w21;
+            document.getElementById('val-w22').innerText = w22;
+            document.getElementById('val-w23').innerText = w23;
+            document.getElementById('val-w31').innerText = w31;
+            document.getElementById('val-w32').innerText = w32;
+            document.getElementById('val-w33').innerText = w33;
 
-            // Calculate Sums
+            // Calculate Observed Waveforms (Linear Combination)
             const e1_data = [];
             const e2_data = [];
             const e3_data = [];
@@ -310,30 +305,22 @@
                 e3_data.push( (w13 * c1_data[i]) + (w23 * c2_data[i]) + (w33 * c3_data[i]) );
             }
 
-            // Redraw Plots efficiently
+            // Update Plots (using Plotly.react for efficiency)
             Plotly.react('plot-e1', [{ x: time, y: e1_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
             Plotly.react('plot-e2', [{ x: time, y: e2_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
             Plotly.react('plot-e3', [{ x: time, y: e3_data, mode: 'lines', line: { color: '#007bff', width: 3 } }], layoutConfig, config);
         }
 
-        // --- 6. Reset Function ---
+        // Helper to reset
         function resetDefaults() {
-            document.getElementById('w11').value = 1.0; 
-            document.getElementById('w12').value = 0.25; 
-            document.getElementById('w13').value = 0.5;
-            
-            document.getElementById('w21').value = 0.5; 
-            document.getElementById('w22').value = 0.5; 
-            document.getElementById('w23').value = 0.5; // Changed from -0.5 to positive
-            
-            document.getElementById('w31').value = 1.0; 
-            document.getElementById('w32').value = 0.75; 
-            document.getElementById('w33').value = 0.5;
-            
+            // Values from the slide image
+            document.getElementById('w11').value = 1; document.getElementById('w12').value = 0.25; document.getElementById('w13').value = 0.5;
+            document.getElementById('w21').value = 0.5; document.getElementById('w22').value = 0.5; document.getElementById('w23').value = -0.5;
+            document.getElementById('w31').value = 1; document.getElementById('w32').value = 0.75; document.getElementById('w33').value = 0.5;
             update();
         }
 
-        // Start
+        // Run on load
         update();
 
     </script>
