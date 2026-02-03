@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EEG Convolution & Mixing Demo</title>
+    <title>EEG Convolution Interactive</title>
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+            background-color: #f4f6f8;
             color: #333;
             margin: 0;
             padding: 20px;
@@ -17,35 +17,53 @@
             align-items: center;
         }
 
-        h1 { margin-bottom: 5px; }
-        p.subtitle { margin-bottom: 25px; color: #666; text-align: center; max-width: 800px; }
+        h1 { margin: 10px 0 5px 0; }
+        p.subtitle { margin-bottom: 30px; color: #666; text-align: center; }
 
-        /* --- Graph Section --- */
-        .graphs-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
+        /* --- MAIN LAYOUT (3 COLUMNS) --- */
+        .main-stage {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
             width: 100%;
-            max-width: 1200px;
-            margin-bottom: 30px;
+            max-width: 1400px;
+            gap: 10px;
         }
 
-        .graph-column h2 {
+        /* Columns */
+        .col-graphs {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px; /* Space between graphs */
+            min-width: 300px;
+        }
+
+        .col-center {
+            flex: 0 0 400px; /* Fixed width for the wiring diagram */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .col-header {
             text-align: center;
-            font-size: 1.2rem;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #444;
+            height: 30px;
         }
 
+        /* Graph Containers */
         .plot-wrapper {
-            height: 160px;
-            margin-bottom: 15px;
-            position: relative;
+            height: 160px; /* Fixed height for alignment */
             background: #fff;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 1px solid #eee;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
         }
 
         .label-badge {
@@ -56,38 +74,21 @@
             border-radius: 4px;
             font-weight: bold;
             z-index: 10;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             background: rgba(255,255,255,0.9);
             border: 1px solid #ccc;
         }
 
-        /* --- Mixing Module (Bottom) --- */
-        .mixing-module {
-            width: 100%;
-            max-width: 1000px;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .module-header {
-            font-size: 1.3rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: #444;
-        }
-
-        /* Network Diagram (SVG) */
+        /* --- SVG DIAGRAM --- */
         .network-container {
             width: 100%;
-            max-width: 800px;
-            height: 350px;
-            margin-bottom: 20px;
-            user-select: none;
+            /* Calculated Height: 
+               3 graphs * 160px height 
+               + 2 gaps * 20px 
+               = 520px total height to align perfectly 
+            */
+            height: 520px; 
+            position: relative;
         }
 
         svg {
@@ -96,443 +97,462 @@
             overflow: visible;
         }
 
-        /* SVG Elements */
-        .node-circle { fill: #fff; stroke-width: 3px; }
-        .node-text { font-weight: bold; font-size: 14px; text-anchor: middle; dominant-baseline: middle; fill: #555; pointer-events: none;}
-        
+        /* SVG Interactions */
         .connection-path {
             fill: none;
-            cursor: pointer;
             transition: stroke-width 0.2s, stroke-opacity 0.2s;
         }
-        .connection-path:hover { stroke-width: 5px; }
         
-        /* Click area for easier selecting */
+        /* Invisible fat path for easier clicking */
         .click-path {
             fill: none;
             stroke: transparent;
-            stroke-width: 20px;
+            stroke-width: 25px;
             cursor: pointer;
         }
+        .click-path:hover + .connection-path {
+            stroke-width: 4px; /* Highlight effect */
+            filter: drop-shadow(0 0 3px rgba(0,0,0,0.3));
+        }
 
-        .weight-label-bg { fill: white; opacity: 0.8; }
-        .weight-label-text { 
-            font-size: 12px; 
-            font-weight: bold; 
-            text-anchor: middle; 
-            dominant-baseline: middle; 
+        .weight-text-bg { fill: white; opacity: 0.85; }
+        .weight-text {
+            font-size: 12px;
+            font-weight: bold;
+            text-anchor: middle;
+            dominant-baseline: middle;
             pointer-events: none;
+            user-select: none;
         }
 
-        /* --- Controls & Sliders --- */
-        .controls-area {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            width: 100%;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
-
-        .slider-group {
-            display: flex;
-            flex-direction: column;
-            width: 120px;
-            background: #f9f9f9;
-            padding: 10px;
-            border-radius: 6px;
-            border-top: 4px solid #ccc;
-        }
-
-        .slider-group label { font-size: 0.8rem; margin-bottom: 5px; font-weight: bold; }
-        .slider-group input { width: 100%; cursor: pointer; }
-
-        .btn-group {
+        /* --- BUTTONS --- */
+        .btn-row {
+            margin-top: 20px;
             display: flex;
             gap: 10px;
-            margin-top: 10px;
+            justify-content: center;
+            width: 100%;
         }
 
         button {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 6px;
-            font-weight: bold;
+            border-radius: 4px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: transform 0.1s, opacity 0.2s;
         }
+        button:active { transform: scale(0.98); }
         button:hover { opacity: 0.9; }
-        .btn-reset { background: #34495e; color: white; }
-        .btn-zero { background: #e74c3c; color: white; }
-        .btn-random { background: #f1c40f; color: #333; }
+
+        .btn-reset { background-color: #34495e; color: white; }
+        .btn-zero { background-color: #e74c3c; color: white; }
+        .btn-random { background-color: #f39c12; color: white; }
+
+        /* --- BOTTOM SLIDERS (Fine Tuning) --- */
+        .sliders-section {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 1000px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .sliders-section h3 { text-align: center; font-size: 1rem; color: #777; margin-bottom: 20px; }
+        
+        .sliders-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .slider-column {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .slider-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .slider-row label { font-size: 0.85rem; width: 60px; }
+        .slider-row input { flex: 1; margin: 0 10px; cursor: pointer; }
+        .val-disp { font-size: 0.8rem; font-family: monospace; width: 35px; text-align: right; }
 
         /* Colors */
-        .c1-style { stroke: #e67e22; color: #e67e22; border-color: #e67e22; }
-        .c2-style { stroke: #c0392b; color: #c0392b; border-color: #c0392b; }
-        .c3-style { stroke: #27ae60; color: #27ae60; border-color: #27ae60; }
-        .e-style { stroke: #2980b9; color: #2980b9; }
+        .c1-color { color: #e67e22; border-color: #e67e22; }
+        .c2-color { color: #c0392b; border-color: #c0392b; }
+        .c3-color { color: #27ae60; border-color: #27ae60; }
 
+        @media (max-width: 1000px) {
+            .main-stage { flex-direction: column; align-items: center; }
+            .col-center { height: 400px; width: 100%; margin: 20px 0; }
+            .network-container { height: 100%; }
+        }
     </style>
 </head>
 <body>
 
     <h1>EEG Convolution Demo</h1>
     <p class="subtitle">
-        Visualizing how source waveforms mix to create observed electrode data.<br>
-        <strong>Interactive:</strong> Click the arrows in the diagram to toggle connections ON/OFF. Use sliders to adjust weight strength.
+        Click the arrows to disconnect wires. Use sliders below for fine-tuning.
     </p>
 
-    <!-- Top Section: Graphs -->
-    <div class="graphs-container">
+    <!-- Main 3-Column Layout -->
+    <div class="main-stage">
         
-        <!-- Left: Sources -->
-        <div class="graph-column">
-            <h2>Source Waveforms (Components)</h2>
-            <div id="plot-c1" class="plot-wrapper"><div class="label-badge" style="color:#e67e22; border-color:#e67e22">C1 (Visual)</div></div>
-            <div id="plot-c2" class="plot-wrapper"><div class="label-badge" style="color:#c0392b; border-color:#c0392b">C2 (Stimulus)</div></div>
-            <div id="plot-c3" class="plot-wrapper"><div class="label-badge" style="color:#27ae60; border-color:#27ae60">C3 (Attention)</div></div>
+        <!-- LEFT: SOURCES -->
+        <div class="col-graphs">
+            <div class="col-header">Source Waveforms (Components)</div>
+            <div id="plot-c1" class="plot-wrapper"><div class="label-badge c1-color" style="border-width:2px">C1 (Visual)</div></div>
+            <div id="plot-c2" class="plot-wrapper"><div class="label-badge c2-color" style="border-width:2px">C2 (Stimulus)</div></div>
+            <div id="plot-c3" class="plot-wrapper"><div class="label-badge c3-color" style="border-width:2px">C3 (Attention)</div></div>
         </div>
 
-        <!-- Right: Observed -->
-        <div class="graph-column">
-            <h2>Observed Waveforms (Electrodes)</h2>
+        <!-- CENTER: WIRING DIAGRAM -->
+        <div class="col-center">
+            <div class="col-header">Weights (W)</div>
+            <div class="network-container" id="network-diagram">
+                <!-- SVG Injected Here -->
+            </div>
+            
+            <div class="btn-row">
+                <button class="btn-reset" onclick="setDefaults()">Reset to Default</button>
+                <button class="btn-zero" onclick="disconnectAll()">Disconnect</button>
+                <button class="btn-random" onclick="setRandom()">Set to Random</button>
+            </div>
+        </div>
+
+        <!-- RIGHT: OBSERVED -->
+        <div class="col-graphs">
+            <div class="col-header">Observed Waveforms (Electrodes)</div>
             <div id="plot-e1" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E1</div></div>
             <div id="plot-e2" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E2</div></div>
             <div id="plot-e3" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E3</div></div>
         </div>
+
     </div>
 
-    <!-- Bottom Section: Mixing Module -->
-    <div class="mixing-module">
-        <div class="module-header">Mixing Weights & Network Diagram</div>
-
-        <!-- SVG Network Diagram -->
-        <div class="network-container" id="network-diagram">
-            <!-- SVG injected by JS -->
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="btn-group">
-            <button class="btn-reset" onclick="setDefaults()">Reset to Default</button>
-            <button class="btn-zero" onclick="setZero()">Set to Zero</button>
-            <button class="btn-random" onclick="setRandom()">Set to Random</button>
-        </div>
-
-        <!-- Sliders (Hidden logic visually, but present for fine tuning) -->
-        <div class="controls-area">
-            <!-- Generated by JS -->
+    <!-- BOTTOM: SLIDERS -->
+    <div class="sliders-section">
+        <h3>Fine Tuning Controls</h3>
+        <div class="sliders-grid" id="sliders-container">
+            <!-- Sliders generated by JS -->
         </div>
     </div>
 
     <script>
-        // --- 1. DATA & STATE ---
+        // --- 1. CONFIGURATION & DATA ---
         
-        // Time vector 0-500ms
-        const time = Array.from({length: 101}, (_, i) => i * 5);
-
-        // Gaussian function
+        const time = Array.from({length: 101}, (_, i) => i * 5); // 0 to 500ms
         const gaussian = (t, peak, width, amp) => amp * Math.exp(-0.5 * Math.pow((t - peak) / width, 2));
 
-        // Source Signals
+        // Source Signals - Updated for substantial overlap and specific shapes
+        // C1: Peak ~130ms, wide enough to touch C2
+        // C2: Dip ~210ms, overlaps C1 tail and C3 start
+        // C3: Peak ~340ms, broad
         const sources = {
-            c1: time.map(t => gaussian(t, 100, 30, 1.0)),  // Visual
-            c2: time.map(t => gaussian(t, 180, 35, -1.0)), // N170
-            c3: time.map(t => gaussian(t, 320, 50, 0.8))   // P300
+            c1: time.map(t => gaussian(t, 130, 45, 1.0)),
+            c2: time.map(t => gaussian(t, 210, 45, -1.0)), 
+            c3: time.map(t => gaussian(t, 340, 70, 0.9))
         };
 
-        // Application State (Weights & Active Status)
-        // Rows = Components (1,2,3), Cols = Electrodes (1,2,3)
-        // Format: w[row][col]
-        let state = [
-            [{val: 1.0, active: true}, {val: 0.25, active: true}, {val: 0.5, active: true}], // C1 weights
-            [{val: 0.5, active: true}, {val: 0.5, active: true}, {val: -0.5, active: true}], // C2 weights
-            [{val: 1.0, active: true}, {val: 0.75, active: true}, {val: 0.5, active: true}]  // C3 weights
+        // State: Weights [Row][Col] -> C[Row] to E[Col]
+        let weights = [
+            [{val: 1.0, on: true}, {val: 0.25, on: true}, {val: 0.5, on: true}],
+            [{val: 0.5, on: true}, {val: 0.5, on: true}, {val: -0.5, on: true}],
+            [{val: 1.0, on: true}, {val: 0.75, on: true}, {val: 0.5, on: true}]
         ];
 
         // --- 2. PLOTLY SETUP ---
 
-        const layoutBase = {
+        const layout = {
             margin: { t: 25, b: 25, l: 30, r: 10 },
             xaxis: { range: [0, 500], showgrid: false, zeroline: false },
             yaxis: { range: [-2.2, 2.2], showticklabels: false, showgrid: false, zeroline: true },
             showlegend: false,
-            height: 160
+            height: 160 // Matches CSS height
         };
         const config = { staticPlot: true, responsive: true };
 
-        // Initialize Source Plots
-        Plotly.newPlot('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], layoutBase, config);
-        Plotly.newPlot('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], layoutBase, config);
-        Plotly.newPlot('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], layoutBase, config);
+        // Draw Sources
+        Plotly.newPlot('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], layout, config);
+        Plotly.newPlot('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], layout, config);
+        Plotly.newPlot('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], layout, config);
 
-        // Initialize Observed Plots (Empty initially)
-        Plotly.newPlot('plot-e1', [{x: time, y: time.map(()=>0), line:{color: '#2980b9', width: 3}}], layoutBase, config);
-        Plotly.newPlot('plot-e2', [{x: time, y: time.map(()=>0), line:{color: '#2980b9', width: 3}}], layoutBase, config);
-        Plotly.newPlot('plot-e3', [{x: time, y: time.map(()=>0), line:{color: '#2980b9', width: 3}}], layoutBase, config);
+        // Draw Observed (Placeholders)
+        const blueLine = {color: '#2980b9', width: 3};
+        Plotly.newPlot('plot-e1', [{x: time, y: [], line: blueLine}], layout, config);
+        Plotly.newPlot('plot-e2', [{x: time, y: [], line: blueLine}], layout, config);
+        Plotly.newPlot('plot-e3', [{x: time, y: [], line: blueLine}], layout, config);
 
-        // --- 3. LOGIC & UPDATES ---
+        // --- 3. MAIN UPDATE LOOP ---
 
         function updateAll() {
             updateCalculations();
-            renderNetwork();
-            updateSliders();
+            renderSVG();
+            updateSlidersUI();
         }
 
         function updateCalculations() {
-            const e1 = [], e2 = [], e3 = [];
+            // Arrays for Observed Data
+            let e1 = new Array(time.length).fill(0);
+            let e2 = new Array(time.length).fill(0);
+            let e3 = new Array(time.length).fill(0);
 
-            for(let i=0; i<time.length; i++) {
-                // Determine effective weight (Value * ActiveStatus)
-                const w11 = state[0][0].active ? state[0][0].val : 0;
-                const w12 = state[0][1].active ? state[0][1].val : 0;
-                const w13 = state[0][2].active ? state[0][2].val : 0;
+            for(let t=0; t<time.length; t++) {
+                // Get Source Values at time t
+                const s1 = sources.c1[t];
+                const s2 = sources.c2[t];
+                const s3 = sources.c3[t];
 
-                const w21 = state[1][0].active ? state[1][0].val : 0;
-                const w22 = state[1][1].active ? state[1][1].val : 0;
-                const w23 = state[1][2].active ? state[1][2].val : 0;
+                // Get Effective Weights (0 if turned off)
+                const w11 = weights[0][0].on ? weights[0][0].val : 0;
+                const w12 = weights[0][1].on ? weights[0][1].val : 0;
+                const w13 = weights[0][2].on ? weights[0][2].val : 0;
 
-                const w31 = state[2][0].active ? state[2][0].val : 0;
-                const w32 = state[2][1].active ? state[2][1].val : 0;
-                const w33 = state[2][2].active ? state[2][2].val : 0;
+                const w21 = weights[1][0].on ? weights[1][0].val : 0;
+                const w22 = weights[1][1].on ? weights[1][1].val : 0;
+                const w23 = weights[1][2].on ? weights[1][2].val : 0;
 
-                // Summation
-                e1.push(w11*sources.c1[i] + w21*sources.c2[i] + w31*sources.c3[i]);
-                e2.push(w12*sources.c1[i] + w22*sources.c2[i] + w32*sources.c3[i]);
-                e3.push(w13*sources.c1[i] + w23*sources.c2[i] + w33*sources.c3[i]);
+                const w31 = weights[2][0].on ? weights[2][0].val : 0;
+                const w32 = weights[2][1].on ? weights[2][1].val : 0;
+                const w33 = weights[2][2].on ? weights[2][2].val : 0;
+
+                // Linear Summation
+                e1[t] = (s1 * w11) + (s2 * w21) + (s3 * w31);
+                e2[t] = (s1 * w12) + (s2 * w22) + (s3 * w32);
+                e3[t] = (s1 * w13) + (s2 * w23) + (s3 * w33);
             }
 
-            Plotly.react('plot-e1', [{x: time, y: e1, line:{color: '#2980b9', width: 3}}], layoutBase, config);
-            Plotly.react('plot-e2', [{x: time, y: e2, line:{color: '#2980b9', width: 3}}], layoutBase, config);
-            Plotly.react('plot-e3', [{x: time, y: e3, line:{color: '#2980b9', width: 3}}], layoutBase, config);
+            Plotly.react('plot-e1', [{x: time, y: e1, line: blueLine}], layout, config);
+            Plotly.react('plot-e2', [{x: time, y: e2, line: blueLine}], layout, config);
+            Plotly.react('plot-e3', [{x: time, y: e3, line: blueLine}], layout, config);
         }
 
-        // --- 4. NETWORK DIAGRAM VISUALIZATION ---
-        
-        const svgNS = "http://www.w3.org/2000/svg";
-        const container = document.getElementById('network-diagram');
-        
-        // Coordinates
-        const cX = 100, eX = 700;
-        const yPos = [60, 175, 290]; // Top, Mid, Bottom
+        // --- 4. SVG DIAGRAM ---
 
-        function renderNetwork() {
-            container.innerHTML = ''; // Clear existing
-            
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svgContainer = document.getElementById('network-diagram');
+        
+        // Vertical positions matching the CSS Graph locations
+        // Each graph is 160px high with 20px gap. 
+        // Centers: 80, 260 (160+20+80), 440 (160+20+160+20+80)
+        const yCenters = [80, 260, 440]; 
+        const colors = ['#e67e22', '#c0392b', '#27ae60'];
+
+        function renderSVG() {
+            svgContainer.innerHTML = '';
+            const width = svgContainer.clientWidth;
+            const height = 520; // Fixed total height
+
             const svg = document.createElementNS(svgNS, "svg");
-            svg.setAttribute("viewBox", "0 0 800 350");
+            svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            svg.setAttribute("preserveAspectRatio", "none");
 
             // Define Arrow Marker
             const defs = document.createElementNS(svgNS, "defs");
             const marker = document.createElementNS(svgNS, "marker");
-            marker.setAttribute("id", "arrowhead");
+            marker.setAttribute("id", "head");
             marker.setAttribute("markerWidth", "10");
             marker.setAttribute("markerHeight", "7");
             marker.setAttribute("refX", "9");
             marker.setAttribute("refY", "3.5");
             marker.setAttribute("orient", "auto");
-            const polygon = document.createElementNS(svgNS, "polygon");
-            polygon.setAttribute("points", "0 0, 10 3.5, 0 7");
-            polygon.setAttribute("fill", "#555");
-            marker.appendChild(polygon);
+            const poly = document.createElementNS(svgNS, "polygon");
+            poly.setAttribute("points", "0 0, 10 3.5, 0 7");
+            poly.setAttribute("fill", "#555");
+            marker.appendChild(poly);
             defs.appendChild(marker);
             svg.appendChild(defs);
 
-            // Draw Connections (Components to Electrodes)
-            const colors = ['#e67e22', '#c0392b', '#27ae60']; // C1, C2, C3
-
-            for (let r=0; r<3; r++) { // Source Row
-                for (let c=0; c<3; c++) { // Electrode Col
+            // Draw Wires
+            for(let r=0; r<3; r++) { // Sources (Left)
+                for(let c=0; c<3; c++) { // Observed (Right)
+                    const w = weights[r][c];
                     
-                    const w = state[r][c];
-                    const startY = yPos[r];
-                    const endY = yPos[c];
+                    const y1 = yCenters[r];
+                    const y2 = yCenters[c];
                     
-                    const isActive = w.active;
-                    const val = w.val;
-                    const absVal = Math.abs(val);
+                    // Bezier Curve Logic
+                    const cp1x = width * 0.4;
+                    const cp2x = width * 0.6;
+                    
+                    const d = `M 0 ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${width-15} ${y2}`;
 
-                    // Group for layering
                     const g = document.createElementNS(svgNS, "g");
-                    
-                    // Bezier Curve for nice flow
-                    const pathD = `M ${cX} ${startY} C ${cX+300} ${startY}, ${eX-300} ${endY}, ${eX-15} ${endY}`;
-                    
-                    // Visual Path (The colored line)
+
+                    // 1. Invisible Fat Path (Click Target)
+                    const clickPath = document.createElementNS(svgNS, "path");
+                    clickPath.setAttribute("d", d);
+                    clickPath.setAttribute("class", "click-path");
+                    clickPath.onclick = () => toggleWeight(r, c);
+
+                    // 2. Visible Wire
                     const path = document.createElementNS(svgNS, "path");
-                    path.setAttribute("d", pathD);
+                    path.setAttribute("d", d);
                     path.setAttribute("class", "connection-path");
-                    path.setAttribute("marker-end", "url(#arrowhead)");
+                    path.setAttribute("marker-end", "url(#head)");
                     
-                    // Styling based on state
-                    if (isActive) {
+                    if(w.on) {
                         path.setAttribute("stroke", colors[r]);
-                        path.setAttribute("stroke-width", Math.max(1, absVal * 6)); // Thickness based on weight
-                        path.setAttribute("stroke-opacity", 1);
-                        if(val === 0) path.setAttribute("stroke-opacity", 0.2); // Visible but faint if 0
+                        // Thickness based on absolute value
+                        const thick = Math.max(1, Math.abs(w.val) * 6);
+                        path.setAttribute("stroke-width", thick);
+                        
+                        // Opacity check for zero value
+                        if(w.val === 0) path.setAttribute("stroke-opacity", 0.2);
+                        else path.setAttribute("stroke-opacity", 1);
                     } else {
+                        // OFF State
                         path.setAttribute("stroke", "#ccc");
                         path.setAttribute("stroke-width", 2);
-                        path.setAttribute("stroke-dasharray", "5,5"); // Dashed for inactive
+                        path.setAttribute("stroke-dasharray", "5,5");
                     }
 
-                    // Click Area (Invisible wide path for easier clicking)
-                    const hitPath = document.createElementNS(svgNS, "path");
-                    hitPath.setAttribute("d", pathD);
-                    hitPath.setAttribute("class", "click-path");
-                    hitPath.onclick = () => toggleWeight(r, c);
+                    // 3. Label Background
+                    const t = 0.5;
+                    const mx = (1-t)*(1-t)*(1-t)*0 + 3*(1-t)*(1-t)*t*cp1x + 3*(1-t)*t*t*cp2x + t*t*t*width;
+                    const my = (1-t)*(1-t)*(1-t)*y1 + 3*(1-t)*(1-t)*t*y1 + 3*(1-t)*t*t*y2 + t*t*t*y2;
 
-                    // Text Label (Background Rect)
-                    const midX = (cX + eX) / 2;
-                    const midY = (startY + endY) / 2;
                     const rect = document.createElementNS(svgNS, "rect");
-                    rect.setAttribute("x", midX - 15);
-                    rect.setAttribute("y", midY - 10);
+                    rect.setAttribute("x", mx - 15);
+                    rect.setAttribute("y", my - 10);
                     rect.setAttribute("width", 30);
                     rect.setAttribute("height", 20);
-                    rect.setAttribute("class", "weight-label-bg");
+                    rect.setAttribute("class", "weight-text-bg");
+                    rect.setAttribute("rx", 4);
 
-                    // Text Value
+                    // 4. Label Text
                     const text = document.createElementNS(svgNS, "text");
-                    text.setAttribute("x", midX);
-                    text.setAttribute("y", midY);
-                    text.setAttribute("class", "weight-label-text");
-                    text.textContent = val.toFixed(2);
-                    if (!isActive) text.setAttribute("fill", "#bbb");
-                    else text.setAttribute("fill", "#000");
+                    text.setAttribute("x", mx);
+                    text.setAttribute("y", my + 1); 
+                    text.setAttribute("class", "weight-text");
+                    text.textContent = w.val.toFixed(2);
+                    if(!w.on) text.setAttribute("fill", "#aaa");
 
-                    g.appendChild(path);
-                    g.appendChild(hitPath); // Put hit area on top of line
-                    g.appendChild(rect);
-                    g.appendChild(text);
+                    g.appendChild(path);      // Wire
+                    g.appendChild(clickPath); // Invisible Click Area
+                    g.appendChild(rect);      // Label BG
+                    g.appendChild(text);      // Label Text
+                    
                     svg.appendChild(g);
                 }
             }
+            
+            // Add connector dots at terminals
+            const dotGroup = document.createElementNS(svgNS, "g");
+            for(let y of yCenters) {
+                // Left Dot
+                let c1 = document.createElementNS(svgNS, "circle");
+                c1.setAttribute("cx", 0); c1.setAttribute("cy", y); c1.setAttribute("r", 4); c1.setAttribute("fill", "#666");
+                dotGroup.appendChild(c1);
+                // Right Dot
+                let c2 = document.createElementNS(svgNS, "circle");
+                c2.setAttribute("cx", width); c2.setAttribute("cy", y); c2.setAttribute("r", 4); c2.setAttribute("fill", "#2980b9");
+                dotGroup.appendChild(c2);
+            }
+            svg.appendChild(dotGroup);
 
-            // Draw Nodes (Circles) ON TOP
-            // Source Nodes
-            ['C1', 'C2', 'C3'].forEach((name, i) => {
-                const g = document.createElementNS(svgNS, "g");
-                const circle = document.createElementNS(svgNS, "circle");
-                circle.setAttribute("cx", cX);
-                circle.setAttribute("cy", yPos[i]);
-                circle.setAttribute("r", 25);
-                circle.setAttribute("class", "node-circle c"+(i+1)+"-style");
-                
-                const text = document.createElementNS(svgNS, "text");
-                text.setAttribute("x", cX);
-                text.setAttribute("y", yPos[i]);
-                text.setAttribute("class", "node-text");
-                text.textContent = name;
-
-                g.appendChild(circle);
-                g.appendChild(text);
-                svg.appendChild(g);
-            });
-
-            // Electrode Nodes
-            ['E1', 'E2', 'E3'].forEach((name, i) => {
-                const g = document.createElementNS(svgNS, "g");
-                const circle = document.createElementNS(svgNS, "circle");
-                circle.setAttribute("cx", eX);
-                circle.setAttribute("cy", yPos[i]);
-                circle.setAttribute("r", 25);
-                circle.setAttribute("class", "node-circle e-style");
-                
-                const text = document.createElementNS(svgNS, "text");
-                text.setAttribute("x", eX);
-                text.setAttribute("y", yPos[i]);
-                text.setAttribute("class", "node-text");
-                text.textContent = name;
-
-                g.appendChild(circle);
-                g.appendChild(text);
-                svg.appendChild(g);
-            });
-
-            container.appendChild(svg);
+            svgContainer.appendChild(svg);
         }
 
-        // --- 5. SLIDER CONTROLS GENERATION ---
-        
-        function updateSliders() {
-            const container = document.querySelector('.controls-area');
-            container.innerHTML = '';
+        // --- 5. SLIDER UI GENERATION ---
 
+        function updateSlidersUI() {
+            const container = document.getElementById('sliders-container');
+            container.innerHTML = ''; // Clear
+
+            const sourceLabels = ["C1", "C2", "C3"];
             const colors = ['#e67e22', '#c0392b', '#27ae60'];
 
-            for (let r=0; r<3; r++) {
-                for (let c=0; c<3; c++) {
-                    const grp = document.createElement('div');
-                    grp.className = 'slider-group';
-                    grp.style.borderTopColor = colors[r];
+            // Create 3 columns of sliders (one per source)
+            for(let r=0; r<3; r++) {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'slider-column';
+                colDiv.style.borderTop = `4px solid ${colors[r]}`;
+                
+                const header = document.createElement('h4');
+                header.textContent = `${sourceLabels[r]} Weights`;
+                header.style.margin = "0 0 10px 0";
+                colDiv.appendChild(header);
+
+                for(let c=0; c<3; c++) {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'slider-row';
 
                     const label = document.createElement('label');
-                    label.innerText = `C${r+1} → E${c+1}`;
-                    
+                    label.textContent = `to E${c+1}:`;
+
                     const input = document.createElement('input');
                     input.type = 'range';
-                    input.min = -1;
-                    input.max = 1;
+                    input.min = -1; 
+                    input.max = 1; 
                     input.step = 0.05;
-                    input.value = state[r][c].val;
+                    input.value = weights[r][c].val;
                     
-                    // If inactive, disable slider? Or just let it change the underlying value?
-                    // Let's let it change underlying value but maybe dim it.
-                    if (!state[r][c].active) grp.style.opacity = 0.5;
-
+                    // Handle input
                     input.oninput = (e) => {
-                        state[r][c].val = parseFloat(e.target.value);
-                        updateAll(); // Re-render everything
+                        weights[r][c].val = parseFloat(e.target.value);
+                        // If user moves slider, auto-enable the path if it was off
+                        if(!weights[r][c].on) weights[r][c].on = true;
+                        updateAll();
                     };
 
-                    grp.appendChild(label);
-                    grp.appendChild(input);
-                    container.appendChild(grp);
+                    const disp = document.createElement('span');
+                    disp.className = 'val-disp';
+                    disp.textContent = weights[r][c].val.toFixed(2);
+                    
+                    if(!weights[r][c].on) {
+                        rowDiv.style.opacity = 0.5;
+                    }
+
+                    rowDiv.appendChild(label);
+                    rowDiv.appendChild(input);
+                    rowDiv.appendChild(disp);
+                    colDiv.appendChild(rowDiv);
                 }
+                container.appendChild(colDiv);
             }
         }
 
         // --- 6. ACTIONS ---
 
         function toggleWeight(r, c) {
-            state[r][c].active = !state[r][c].active;
+            weights[r][c].on = !weights[r][c].on;
             updateAll();
         }
 
         function setDefaults() {
-            // Values from slide
-            state = [
-                [{val: 1.0, active: true}, {val: 0.25, active: true}, {val: 0.5, active: true}],
-                [{val: 0.5, active: true}, {val: 0.5, active: true}, {val: -0.5, active: true}],
-                [{val: 1.0, active: true}, {val: 0.75, active: true}, {val: 0.5, active: true}]
+            weights = [
+                [{val: 1.0, on: true}, {val: 0.25, on: true}, {val: 0.5, on: true}],
+                [{val: 0.5, on: true}, {val: 0.5, on: true}, {val: -0.5, on: true}],
+                [{val: 1.0, on: true}, {val: 0.75, on: true}, {val: 0.5, on: true}]
             ];
             updateAll();
         }
 
-        function setZero() {
-            for(let r=0; r<3; r++) 
-                for(let c=0; c<3; c++) {
-                    state[r][c].val = 0;
-                    state[r][c].active = true;
-                }
+        function disconnectAll() {
+            weights.forEach(row => row.forEach(w => {
+                // Keep val the same, but turn it off
+                w.on = false;
+            }));
             updateAll();
         }
 
         function setRandom() {
-            for(let r=0; r<3; r++) 
-                for(let c=0; c<3; c++) {
-                    // Random between -1 and 1
-                    state[r][c].val = parseFloat((Math.random() * 2 - 1).toFixed(2));
-                    state[r][c].active = true;
-                }
+            weights.forEach(row => row.forEach(w => {
+                // Random between -1.00 and 1.00
+                w.val = Math.round((Math.random() * 2 - 1) * 20) / 20; 
+                w.on = true;
+            }));
             updateAll();
         }
 
         // --- INIT ---
-        window.onload = function() {
-            updateAll();
-        }
+        window.addEventListener('resize', renderSVG);
+        updateAll();
 
     </script>
 </body>
