@@ -11,7 +11,7 @@
             background-color: #f4f6f8;
             color: #333;
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -19,24 +19,25 @@
 
         .header {
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
-        h1 { margin: 10px 0 5px 0; }
+        h1 { margin: 8px 0 4px 0; font-size: 1.8rem; }
         
         .back-link {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            padding: 10px 20px;
+            top: 16px;
+            left: 16px;
+            padding: 8px 16px;
             background-color: #667eea;
             color: white;
             text-decoration: none;
             font-weight: 600;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
             z-index: 1000;
             transition: background-color 0.3s;
+            font-size: 0.9rem;
         }
         
         .back-link:hover {
@@ -45,39 +46,40 @@
         }
 
         p.subtitle { 
-            margin-bottom: 10px; 
+            margin-bottom: 8px; 
             color: #666; 
             text-align: center;
-            max-width: 550px;
-            font-size: 0.95rem;
+            max-width: 440px;
+            font-size: 0.85rem;
         }
 
         .control-panel {
             background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            max-width: 1000px;
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            margin-bottom: 16px;
+            max-width: 800px;
             width: 100%;
         }
 
         .control-row {
             display: flex;
-            gap: 15px;
-            margin-bottom: 12px;
+            gap: 12px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
         }
 
         .control-group {
             flex: 1;
-            min-width: 200px;
+            min-width: 160px;
         }
 
         .control-group label {
             display: block;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
             color: #555;
         }
 
@@ -98,19 +100,19 @@
 
         .button-group {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             justify-content: center;
-            margin-top: 20px;
+            margin-top: 16px;
         }
 
         button {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 6px;
+            border-radius: 5px;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.1s, opacity 0.2s;
-            font-size: 1rem;
+            font-size: 0.85rem;
         }
 
         button:active { transform: scale(0.98); }
@@ -122,24 +124,24 @@
 
         .visualization-area {
             width: 100%;
-            max-width: 1000px;
+            max-width: 800px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 16px;
         }
 
         .condition-column {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
         }
 
         .condition-header {
             text-align: center;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 700;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 6px;
             color: white;
         }
 
@@ -159,26 +161,26 @@
 
         .plot-container {
             background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 8px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
         .plot-title {
-            font-size: 1rem;
+            font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: #444;
         }
 
         .overlay-controls {
             display: flex;
-            gap: 15px;
-            margin-top: 8px;
-            padding: 8px;
+            gap: 12px;
+            margin-top: 6px;
+            padding: 6px;
             background: #f9f9f9;
-            border-radius: 4px;
-            font-size: 0.85rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
         }
 
         .overlay-controls label {
@@ -195,45 +197,45 @@
 
         .trials-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 8px;
+            margin-top: 16px;
         }
 
         .trial-mini {
-            height: 100px;
+            height: 80px;
             background: #f9f9f9;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 3px;
             cursor: pointer;
             transition: border-color 0.2s;
         }
 
         .trial-mini:hover {
             border-color: #667eea;
-            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 2px 3px rgba(102, 126, 234, 0.2);
         }
 
         .info-box {
             background: #e8f4f8;
-            border-left: 4px solid #3498db;
-            padding: 10px 12px;
-            margin: 15px 0;
-            border-radius: 4px;
-            max-width: 1000px;
+            border-left: 3px solid #3498db;
+            padding: 8px 10px;
+            margin: 12px 0;
+            border-radius: 3px;
+            max-width: 800px;
         }
 
         .info-box h3 {
-            margin: 0 0 6px 0;
+            margin: 0 0 5px 0;
             color: #2980b9;
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
 
         .info-box p {
             margin: 0;
             color: #555;
             line-height: 1.5;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
     </style>
 </head>
@@ -262,8 +264,8 @@
             <div class="control-group">
                 <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                     Total Number of Trials: <span class="value-display" id="trials-value">0</span>
-                    <button class="btn-secondary" onclick="addTrial()" style="white-space: nowrap; padding: 6px 12px; font-size: 0.85rem;">+ 1 Trial</button>
-                    <button class="btn-secondary" onclick="addTenTrials()" style="white-space: nowrap; padding: 6px 12px; font-size: 0.85rem;">+10 Trials</button>
+                    <button class="btn-secondary" onclick="addTrial()" style="white-space: nowrap; padding: 5px 10px; font-size: 0.75rem;">+ 1 Trial</button>
+                    <button class="btn-secondary" onclick="addTenTrials()" style="white-space: nowrap; padding: 5px 10px; font-size: 0.75rem;">+10 Trials</button>
                 </label>
                 <input type="range" id="trials-slider" min="1" max="100" value="0" step="1" style="width: 100%;">
             </div>
