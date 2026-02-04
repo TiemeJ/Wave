@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Averaging Demo</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        h1 { margin: 10px 0 5px 0; }
+        
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #667eea;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transition: background-color 0.3s;
+        }
+        
+        .back-link:hover {
+            background-color: #5568d3;
+            text-decoration: none;
+        }
+
+        p.subtitle { 
+            margin-bottom: 10px; 
+            color: #666; 
+            text-align: center;
+            max-width: 550px;
+            font-size: 0.95rem;
+        }
+
+        .control-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .value-display {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            font-size: 1rem;
+        }
+
+        button:active { transform: scale(0.98); }
+        button:hover { opacity: 0.9; }
+
+        .btn-primary { background-color: #667eea; color: white; }
+        .btn-secondary { background-color: #34495e; color: white; }
+        .btn-danger { background-color: #e74c3c; color: white; }
+
+        .visualization-area {
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .condition-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .condition-header {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .oddball-header {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .standard-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        @media (max-width: 900px) {
+            .visualization-area {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .plot-container {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .plot-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #444;
+        }
+
+        .overlay-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .overlay-controls label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .overlay-controls input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .trials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .trial-mini {
+            height: 100px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .trial-mini:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 10px 12px;
+            margin: 15px 0;
+            border-radius: 4px;
+            max-width: 1000px;
+        }
+
+        .info-box h3 {
+            margin: 0 0 6px 0;
+            color: #2980b9;
+            font-size: 1rem;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #555;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">Back</a>
+    <div class="header">
+        <h1>ERP Averaging Demo</h1>
+        <p class="subtitle">
+            Compare how ERPs emerge for Oddball (25%, large P3) vs Standard (75%, small P3) stimuli. 
+            Random noise cancels out while revealing the different brain responses to rare and frequent events.
+        </p>
+    </div>
+
+    <div class="info-box">
+        <h3>Oddball Paradigm</h3>
+        <p>
+            Choose and change the number of trials to immediately see the ERPs emerge from the noise. 
+            In oddball tasks, rare stimuli (O, 25%) elicit a larger P3 component (~330ms) than frequent stimuli (X, 75%). 
+            Each trial contains the true ERP plus ongoing EEG oscillations. Averaging cancels the random-phase oscillations 
+            while preserving the time-locked ERP, revealing the difference between conditions.
+        </p>
+    </div>
+
+    <div class="control-panel">
+        <div class="control-row">
+            <div class="control-group">
+                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    Total Number of Trials: <span class="value-display" id="trials-value">0</span>
+                    <button class="btn-secondary" onclick="addTrial()" style="white-space: nowrap; padding: 6px 12px; font-size: 0.85rem;">+ 1 Trial</button>
+                    <button class="btn-secondary" onclick="addTenTrials()" style="white-space: nowrap; padding: 6px 12px; font-size: 0.85rem;">+10 Trials</button>
+                </label>
+                <input type="range" id="trials-slider" min="1" max="100" value="0" step="1" style="width: 100%;">
+            </div>
+            <div class="control-group">
+                <label>Noise Level (SNR): <span class="value-display" id="noise-value">5</span></label>
+                <input type="range" id="noise-slider" min="0.5" max="5" value="5" step="0.1">
+            </div>
+        </div>
+    </div>
+
+    <div class="visualization-area">
+        <!-- Oddball Column -->
+        <div class="condition-column">
+            <div class="condition-header oddball-header">Oddball (O) ERP - n = <span id="oddball-count">0</span></div>
+            
+            <div class="plot-container">
+                <div class="plot-title">Current Average</div>
+                <div class="overlay-controls">
+                    <label>
+                        <input type="checkbox" id="overlay-standard" onchange="updatePlots()">
+                        Overlay Standard (X)
+                    </label>
+                    <label>
+                        <input type="checkbox" id="overlay-difference" onchange="updatePlots()">
+                        Overlay Difference (O-X)
+                    </label>
+                </div>
+                <div id="plot-oddball-average" style="height: 350px;"></div>
+            </div>
+
+            <div class="plot-container">
+                <div class="plot-title">Last Single Trial</div>
+                <div id="plot-oddball-single" style="height: 300px;"></div>
+            </div>
+
+            <div class="plot-container">
+                <div class="plot-title">All Trials</div>
+                <div class="trials-grid" id="oddball-trials-grid"></div>
+            </div>
+        </div>
+
+        <!-- Standard Column -->
+        <div class="condition-column">
+            <div class="condition-header standard-header">Standard (X) ERP - n = <span id="standard-count">0</span></div>
+            
+            <div class="plot-container">
+                <div class="plot-title">Current Average</div>
+                <div class="overlay-controls">
+                    <label>
+                        <input type="checkbox" id="overlay-oddball" onchange="updatePlots()">
+                        Overlay Oddball (O)
+                    </label>
+                    <label>
+                        <input type="checkbox" id="overlay-difference-standard" onchange="updatePlots()">
+                        Overlay Difference (O-X)
+                    </label>
+                </div>
+                <div id="plot-standard-average" style="height: 350px;"></div>
+            </div>
+
+            <div class="plot-container">
+                <div class="plot-title">Last Single Trial</div>
+                <div id="plot-standard-single" style="height: 300px;"></div>
+            </div>
+
+            <div class="plot-container">
+                <div class="plot-title">All Trials</div>
+                <div class="trials-grid" id="standard-trials-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ERP Template - Realistic multi-component ERP (like oddball P3)
+        const time = Array.from({length: 801}, (_, i) => i); // 0 to 800ms at 1ms intervals (1000 Hz sampling)
+
+        // Oddball ERP peaks (large P3)
+        const oddballPeaks = [
+            {t: 100, width: 15, amp: 1.2},    // P1 - early positive
+            {t: 140, width: 18, amp: -2.0},   // N1 - early negative (sharp)
+            {t: 200, width: 25, amp: 2.5},    // P2 - mid positive (prominent)
+            {t: 260, width: 20, amp: -1.2},   // N2 - mid negative  
+            {t: 330, width: 60, amp: 8.0},    // P3 - LARGE positive (dominant peak for oddball)
+            {t: 550, width: 120, amp: 1.5},   // Late positive component (broad)
+        ];
+
+        // Standard ERP peaks (small P3)
+        const standardPeaks = [
+            {t: 100, width: 15, amp: 1.2},    // P1 - early positive
+            {t: 140, width: 18, amp: -2.0},   // N1 - early negative (sharp)
+            {t: 200, width: 25, amp: 2.5},    // P2 - mid positive (prominent)
+            {t: 260, width: 20, amp: -1.2},   // N2 - mid negative  
+            {t: 330, width: 60, amp: 3.0},    // P3 - SMALL positive (reduced for standard)
+            {t: 550, width: 120, amp: 1.5},   // Late positive component (broad)
+        ];
+
+        function gaussian(t, peak, width, amp) {
+            return amp * Math.exp(-0.5 * Math.pow((t - peak) / width, 2));
+        }
+
+        function generateERP(peaks) {
+            return time.map(t => {
+                return peaks.reduce((sum, peak) => 
+                    sum + gaussian(t, peak.t, peak.width, peak.amp), 0);
+            });
+        }
+
+        // State - separate for each condition
+        let oddballSignal = generateERP(oddballPeaks);
+        let standardSignal = generateERP(standardPeaks);
+        
+        let noiseLevel = 5.0;
+        let numTrials = 0;
+        
+        // Separate state for each condition
+        let oddballTrials = [];
+        let standardTrials = [];
+        let oddballAverage = new Array(time.length).fill(0);
+        let standardAverage = new Array(time.length).fill(0);
+        let oddballCount = 0;
+        let standardCount = 0;
+
+        // Generate a single trial with realistic EEG noise containing multiple frequency bands
+        function generateTrial(trueSignal) {
+            const noise = new Array(time.length).fill(0);
+            
+            // Random phases for each band
+            const phaseShifts = {
+                delta: Math.random() * 2 * Math.PI,
+                theta: Math.random() * 2 * Math.PI,
+                alpha: Math.random() * 2 * Math.PI,
+                beta: Math.random() * 2 * Math.PI
+            };
+            
+            // Random frequencies within each band
+            const freqs = {
+                delta: 1 + Math.random() * 3,      // 1-4 Hz
+                theta: 5 + Math.random() * 2,      // 5-7 Hz
+                alpha: 8 + Math.random() * 4,      // 8-12 Hz
+                beta: 13 + Math.random() * 8       // 13-21 Hz
+            };
+            
+            // Base amplitudes following inverse power law (1/f), but with alpha peak
+            const baseAmps = {
+                delta: noiseLevel * 0.25,          // Reduced sensitivity to noise level
+                theta: noiseLevel * 0.50,          // Increased theta power for more random noise
+                alpha: noiseLevel * 0.7,           // Peak (exception to power law)
+                beta: noiseLevel * 0.35            // Increased beta power
+            };
+            
+            // Random modulation for each band within trial
+            const modulations = {
+                delta: { freq: 0.3 + Math.random() * 0.4, phase: Math.random() * 2 * Math.PI },
+                theta: { freq: 0.4 + Math.random() * 0.6, phase: Math.random() * 2 * Math.PI },
+                alpha: { freq: 0.5 + Math.random() * 1.5, phase: Math.random() * 2 * Math.PI },
+                beta: { freq: 0.6 + Math.random() * 1.0, phase: Math.random() * 2 * Math.PI }
+            };
+            
+            // Generate each frequency band
+            for (let i = 0; i < time.length; i++) {
+                const t = time[i] / 1000; // Convert to seconds
+                
+                // Delta (1-4 Hz) - high power, slow modulation
+                const deltaAmp = baseAmps.delta * (0.7 + 0.6 * Math.sin(2 * Math.PI * modulations.delta.freq * t + modulations.delta.phase));
+                noise[i] += deltaAmp * Math.sin(2 * Math.PI * freqs.delta * t + phaseShifts.delta);
+                
+                // Theta (5-7 Hz) - moderate power
+                const thetaAmp = baseAmps.theta * (0.7 + 0.6 * Math.sin(2 * Math.PI * modulations.theta.freq * t + modulations.theta.phase));
+                noise[i] += thetaAmp * Math.sin(2 * Math.PI * freqs.theta * t + phaseShifts.theta);
+                
+                // Alpha (8-12 Hz) - peak power (exception to 1/f)
+                const alphaAmp = baseAmps.alpha * (0.7 + 0.6 * Math.sin(2 * Math.PI * modulations.alpha.freq * t + modulations.alpha.phase));
+                noise[i] += alphaAmp * Math.sin(2 * Math.PI * freqs.alpha * t + phaseShifts.alpha);
+                
+                // Beta (13-21 Hz) - low power
+                const betaAmp = baseAmps.beta * (0.7 + 0.6 * Math.sin(2 * Math.PI * modulations.beta.freq * t + modulations.beta.phase));
+                noise[i] += betaAmp * Math.sin(2 * Math.PI * freqs.beta * t + phaseShifts.beta);
+            }
+            
+            // Add small amount of smoothed random noise for irregularity
+            const rawNoise = new Array(time.length);
+            for (let i = 0; i < time.length; i++) {
+                rawNoise[i] = (Math.random() - 0.5) * noiseLevel * 0.2;
+            }
+            
+            // Smooth the random noise
+            const smoothWindow = 30;
+            for (let i = 0; i < time.length; i++) {
+                let sum = 0;
+                let count = 0;
+                for (let j = Math.max(0, i - smoothWindow); j <= Math.min(time.length - 1, i + smoothWindow); j++) {
+                    sum += rawNoise[j];
+                    count++;
+                }
+                noise[i] += sum / count;
+            }
+            
+            // Add to true ERP signal
+            return trueSignal.map((val, i) => val + noise[i]);
+        }
+
+        // Update controls
+        document.getElementById('trials-slider').oninput = function() {
+            const newNumTrials = parseInt(this.value);
+            document.getElementById('trials-value').textContent = newNumTrials;
+            
+            const currentTotal = oddballCount + standardCount;
+            
+            if (newNumTrials > currentTotal) {
+                // Add trials incrementally without updating plots each time
+                const trialsToAdd = newNumTrials - currentTotal;
+                for (let i = 0; i < trialsToAdd; i++) {
+                    addTrialWithoutUpdate();
+                }
+                // Update plots once at the end
+                numTrials = newNumTrials;
+                document.getElementById('trials-slider').value = numTrials;
+                document.getElementById('trials-value').textContent = numTrials;
+                updatePlots();
+            } else if (newNumTrials < currentTotal) {
+                // Regenerate from scratch when reducing
+                numTrials = newNumTrials;
+                generateNewTrials();
+            }
+            
+            numTrials = newNumTrials;
+        };
+
+        document.getElementById('noise-slider').oninput = function() {
+            noiseLevel = parseFloat(this.value);
+            document.getElementById('noise-value').textContent = noiseLevel.toFixed(1);
+            generateNewTrials();
+        };
+
+        // Generate new set of trials (25% oddball, 75% standard)
+        function generateNewTrials() {
+            oddballTrials = [];
+            standardTrials = [];
+            oddballAverage = new Array(time.length).fill(0);
+            standardAverage = new Array(time.length).fill(0);
+            oddballCount = 0;
+            standardCount = 0;
+            
+            // Calculate exact 25% oddball (rounded)
+            const numOddballs = Math.round(numTrials * 0.25);
+            const numStandards = numTrials - numOddballs;
+            
+            // Generate oddball trials
+            for (let i = 0; i < numOddballs; i++) {
+                const trial = generateTrial(oddballSignal);
+                oddballTrials.push(trial);
+                for (let j = 0; j < time.length; j++) {
+                    oddballAverage[j] += trial[j];
+                }
+                oddballCount++;
+            }
+            
+            // Generate standard trials
+            for (let i = 0; i < numStandards; i++) {
+                const trial = generateTrial(standardSignal);
+                standardTrials.push(trial);
+                for (let j = 0; j < time.length; j++) {
+                    standardAverage[j] += trial[j];
+                }
+                standardCount++;
+            }
+            
+            // Compute averages
+            if (oddballCount > 0) {
+                oddballAverage = oddballAverage.map(val => val / oddballCount);
+            }
+            if (standardCount > 0) {
+                standardAverage = standardAverage.map(val => val / standardCount);
+            }
+            
+            updatePlots();
+        }
+
+        // Add one trial (maintain 25% oddball ratio) without updating plots
+        function addTrialWithoutUpdate() {
+            const currentTotal = oddballCount + standardCount;
+            const currentOddballRatio = currentTotal > 0 ? oddballCount / currentTotal : 0;
+            
+            // Determine if we should add oddball or standard to maintain 25% ratio
+            const shouldAddOddball = currentOddballRatio < 0.25;
+            
+            if (shouldAddOddball) {
+                // Add oddball trial
+                const trial = generateTrial(oddballSignal);
+                oddballTrials.push(trial);
+                
+                if (oddballCount === 0) {
+                    oddballAverage = [...trial];
+                    oddballCount = 1;
+                } else {
+                    const newAverage = new Array(time.length);
+                    for (let j = 0; j < time.length; j++) {
+                        newAverage[j] = (oddballAverage[j] * oddballCount + trial[j]) / (oddballCount + 1);
+                    }
+                    oddballAverage = newAverage;
+                    oddballCount++;
+                }
+            } else {
+                // Add standard trial
+                const trial = generateTrial(standardSignal);
+                standardTrials.push(trial);
+                
+                if (standardCount === 0) {
+                    standardAverage = [...trial];
+                    standardCount = 1;
+                } else {
+                    const newAverage = new Array(time.length);
+                    for (let j = 0; j < time.length; j++) {
+                        newAverage[j] = (standardAverage[j] * standardCount + trial[j]) / (standardCount + 1);
+                    }
+                    standardAverage = newAverage;
+                    standardCount++;
+                }
+            }
+        }
+
+        // Add one trial (maintain 25% oddball ratio)
+        function addTrial() {
+            addTrialWithoutUpdate();
+            
+            // Update trials counter
+            numTrials = oddballCount + standardCount;
+            document.getElementById('trials-slider').value = numTrials;
+            document.getElementById('trials-value').textContent = numTrials;
+            
+            updatePlots();
+        }
+
+        // Add 10 trials at once
+        function addTenTrials() {
+            for (let i = 0; i < 10; i++) {
+                const currentTotal = oddballCount + standardCount;
+                const currentOddballRatio = currentTotal > 0 ? oddballCount / currentTotal : 0;
+                const shouldAddOddball = currentOddballRatio < 0.25;
+                
+                if (shouldAddOddball) {
+                    const trial = generateTrial(oddballSignal);
+                    oddballTrials.push(trial);
+                    
+                    if (oddballCount === 0) {
+                        oddballAverage = [...trial];
+                        oddballCount = 1;
+                    } else {
+                        const newAverage = new Array(time.length);
+                        for (let j = 0; j < time.length; j++) {
+                            newAverage[j] = (oddballAverage[j] * oddballCount + trial[j]) / (oddballCount + 1);
+                        }
+                        oddballAverage = newAverage;
+                        oddballCount++;
+                    }
+                } else {
+                    const trial = generateTrial(standardSignal);
+                    standardTrials.push(trial);
+                    
+                    if (standardCount === 0) {
+                        standardAverage = [...trial];
+                        standardCount = 1;
+                    } else {
+                        const newAverage = new Array(time.length);
+                        for (let j = 0; j < time.length; j++) {
+                            newAverage[j] = (standardAverage[j] * standardCount + trial[j]) / (standardCount + 1);
+                        }
+                        standardAverage = newAverage;
+                        standardCount++;
+                    }
+                }
+            }
+            
+            // Update trials counter
+            numTrials = oddballCount + standardCount;
+            document.getElementById('trials-slider').value = numTrials;
+            document.getElementById('trials-value').textContent = numTrials;
+            
+            updatePlots();
+        }
+
+        // Clear all trials
+        function clearAllTrials() {
+            oddballAverage = new Array(time.length).fill(0);
+            standardAverage = new Array(time.length).fill(0);
+            oddballCount = 0;
+            standardCount = 0;
+            oddballTrials = [];
+            standardTrials = [];
+            
+            // Update the slider and display to show 0 trials
+            numTrials = 0;
+            document.getElementById('trials-slider').value = 0;
+            document.getElementById('trials-value').textContent = 0;
+            
+            updatePlots();
+        }
+
+        // Update all plots
+        function updatePlots() {
+            // Update counts
+            document.getElementById('oddball-count').textContent = oddballCount;
+            document.getElementById('standard-count').textContent = standardCount;
+            
+            // Plot layout template
+            const getLayout = () => ({
+                margin: { t: 20, b: 100, l: 60, r: 20 },
+                xaxis: { title: 'Time (ms)', range: [0, 800] },
+                yaxis: { title: 'Amplitude (μV)', range: [-10, 10] },
+                showlegend: true,
+                legend: { 
+                    orientation: 'h',
+                    x: 0.5,
+                    xanchor: 'center',
+                    y: -0.6,
+                    yanchor: 'top'
+                },
+                hovermode: 'x unified'
+            });
+            
+            const getSingleLayout = () => ({
+                margin: { t: 20, b: 50, l: 60, r: 20 },
+                xaxis: { title: 'Time (ms)', range: [0, 800] },
+                yaxis: { title: 'Amplitude (μV)', range: [-10, 10] },
+                showlegend: false
+            });
+            
+            // ODDBALL PLOTS
+            // Oddball average plot
+            const oddballTraces = [];
+            
+            const oddballAvgTrace = {
+                x: time,
+                y: oddballAverage,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#c0392b', width: 3 },
+                name: 'O'
+            };
+            oddballTraces.push(oddballAvgTrace);
+            
+            // Check for overlays
+            if (document.getElementById('overlay-standard').checked) {
+                const standardOverlayTrace = {
+                    x: time,
+                    y: standardAverage,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#2980b9', width: 2, dash: 'dot' },
+                    name: 'X'
+                };
+                oddballTraces.push(standardOverlayTrace);
+            }
+            
+            if (document.getElementById('overlay-difference').checked) {
+                const differenceWave = oddballAverage.map((val, i) => val - standardAverage[i]);
+                const differenceTrace = {
+                    x: time,
+                    y: differenceWave,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#27ae60', width: 2 },
+                    name: 'O-X'
+                };
+                oddballTraces.push(differenceTrace);
+            }
+            
+            const oddballTrueTrace = {
+                x: time,
+                y: oddballSignal,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#e74c3c', width: 1, dash: 'dash' },
+                name: 'True signal',
+                opacity: 0.5
+            };
+            oddballTraces.push(oddballTrueTrace);
+            
+            Plotly.react('plot-oddball-average', oddballTraces, getLayout(), {responsive: true});
+            
+            // Oddball single trial
+            if (oddballTrials.length > 0) {
+                const lastOddball = oddballTrials[oddballTrials.length - 1];
+                const oddballSingleTrace = {
+                    x: time,
+                    y: lastOddball,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#95a5a6', width: 2 },
+                    name: 'Single Trial'
+                };
+                
+                Plotly.react('plot-oddball-single', [oddballSingleTrace, oddballTrueTrace], getSingleLayout(), {responsive: true});
+            }
+            
+            // STANDARD PLOTS
+            // Standard average plot
+            const standardTraces = [];
+            
+            const standardAvgTrace = {
+                x: time,
+                y: standardAverage,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#2980b9', width: 3 },
+                name: 'X'
+            };
+            standardTraces.push(standardAvgTrace);
+            
+            // Check for overlays
+            if (document.getElementById('overlay-oddball').checked) {
+                const oddballOverlayTrace = {
+                    x: time,
+                    y: oddballAverage,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#c0392b', width: 2, dash: 'dot' },
+                    name: 'O'
+                };
+                standardTraces.push(oddballOverlayTrace);
+            }
+            
+            if (document.getElementById('overlay-difference-standard').checked) {
+                const differenceWave = oddballAverage.map((val, i) => val - standardAverage[i]);
+                const differenceTrace = {
+                    x: time,
+                    y: differenceWave,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#27ae60', width: 2 },
+                    name: 'O-X'
+                };
+                standardTraces.push(differenceTrace);
+            }
+            
+            const standardTrueTrace = {
+                x: time,
+                y: standardSignal,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#3498db', width: 1, dash: 'dash' },
+                name: 'True signal',
+                opacity: 0.5
+            };
+            standardTraces.push(standardTrueTrace);
+            
+            Plotly.react('plot-standard-average', standardTraces, getLayout(), {responsive: true});
+            
+            // Standard single trial
+            if (standardTrials.length > 0) {
+                const lastStandard = standardTrials[standardTrials.length - 1];
+                const standardSingleTrace = {
+                    x: time,
+                    y: lastStandard,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#95a5a6', width: 2 },
+                    name: 'Single Trial'
+                };
+                
+                Plotly.react('plot-standard-single', [standardSingleTrace, standardTrueTrace], getSingleLayout(), {responsive: true});
+            }
+            
+            // Mini trial plots - Oddball
+            const oddballGrid = document.getElementById('oddball-trials-grid');
+            oddballGrid.innerHTML = '';
+            
+            oddballTrials.forEach((trial, idx) => {
+                const miniDiv = document.createElement('div');
+                miniDiv.className = 'trial-mini';
+                miniDiv.id = `mini-oddball-${idx}`;
+                oddballGrid.appendChild(miniDiv);
+                
+                const miniTrace = {
+                    x: time,
+                    y: trial,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#e74c3c', width: 1 }
+                };
+                
+                const miniLayout = {
+                    margin: { t: 5, b: 5, l: 5, r: 5 },
+                    xaxis: { visible: false, range: [0, 800] },
+                    yaxis: { visible: false, range: [-8, 8] },
+                    showlegend: false
+                };
+                
+                Plotly.newPlot(miniDiv.id, [miniTrace], miniLayout, 
+                    {staticPlot: true, responsive: true, displayModeBar: false});
+            });
+            
+            // Mini trial plots - Standard
+            const standardGrid = document.getElementById('standard-trials-grid');
+            standardGrid.innerHTML = '';
+            
+            standardTrials.forEach((trial, idx) => {
+                const miniDiv = document.createElement('div');
+                miniDiv.className = 'trial-mini';
+                miniDiv.id = `mini-standard-${idx}`;
+                standardGrid.appendChild(miniDiv);
+                
+                const miniTrace = {
+                    x: time,
+                    y: trial,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#3498db', width: 1 }
+                };
+                
+                const miniLayout = {
+                    margin: { t: 5, b: 5, l: 5, r: 5 },
+                    xaxis: { visible: false, range: [0, 800] },
+                    yaxis: { visible: false, range: [-8, 8] },
+                    showlegend: false
+                };
+                
+                Plotly.newPlot(miniDiv.id, [miniTrace], miniLayout, 
+                    {staticPlot: true, responsive: true, displayModeBar: false});
+            });
+        }
+
+        // Initialize
+        generateNewTrials();
+    </script>
+</body>
+</html>
