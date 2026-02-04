@@ -11,27 +11,28 @@
             background-color: #f4f6f8;
             color: #333;
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        h1 { margin: 10px 0 5px 0; }
+        h1 { margin: 8px 0 4px 0; font-size: 1.8rem; }
         
         .back-link {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            padding: 10px 20px;
+            top: 16px;
+            left: 16px;
+            padding: 8px 16px;
             background-color: #667eea;
             color: white;
             text-decoration: none;
             font-weight: 600;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
             z-index: 1000;
             transition: background-color 0.3s;
+            font-size: 0.9rem;
         }
         
         .back-link:hover {
@@ -39,7 +40,7 @@
             text-decoration: none;
         }
         
-        p.subtitle { margin-bottom: 30px; color: #666; text-align: center; }
+        p.subtitle { margin-bottom: 24px; color: #666; text-align: center; font-size: 0.9rem; }
 
         /* --- MAIN LAYOUT (3 COLUMNS) --- */
         .main-stage {
@@ -48,8 +49,8 @@
             justify-content: center;
             align-items: flex-start; /* Align to top */
             width: 100%;
-            max-width: 900px;
-            gap: 10px;
+            max-width: 720px;
+            gap: 8px;
         }
 
         /* Columns */
@@ -57,20 +58,20 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 20px; /* Space between graphs */
-            min-width: 200px;
+            gap: 16px; /* Space between graphs */
+            min-width: 160px;
         }
 
         .col-image {
             flex: 2; /* Wider than regular graph columns */
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            min-width: 300px;
+            gap: 16px;
+            min-width: 240px;
         }
 
         .col-center {
-            flex: 0 0 250px; /* Fixed width for the wiring diagram */
+            flex: 0 0 200px; /* Fixed width for the wiring diagram */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -79,46 +80,46 @@
         .col-header {
             text-align: center;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             color: #444;
-            height: 30px;
+            height: 24px;
             flex-shrink: 0;
-            margin-bottom: -10px;
+            margin-bottom: -8px;
         }
 
         /* Graph Containers */
         .plot-wrapper {
-            height: 160px; /* Fixed height for alignment */
+            height: 128px; /* Fixed height for alignment */
             background: #fff;
-            border-radius: 8px;
+            border-radius: 6px;
             border: 1px solid #ddd;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             position: relative;
         }
 
         .label-badge {
             position: absolute;
-            left: 5px;
-            top: 5px;
-            padding: 2px 8px;
-            border-radius: 4px;
+            left: 4px;
+            top: 4px;
+            padding: 2px 6px;
+            border-radius: 3px;
             font-weight: bold;
             z-index: 10;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             background: rgba(255,255,255,0.9);
             border: 1px solid #ccc;
         }
 
         .image-box {
             background: #fff;
-            border-radius: 8px;
+            border-radius: 6px;
             border: 1px solid #ddd;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            padding: 25px; /* Increased padding */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 20px; /* Increased padding */
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 520px; /* Match total height of 3 graphs + gaps */
+            height: 416px; /* Match total height of 3 graphs + 2 gaps */
             box-sizing: border-box; /* Include padding in height calculation */
         }
 
@@ -132,11 +133,11 @@
         .network-container {
             width: 100%;
             /* Calculated Height: 
-               3 graphs * 160px height 
-               + 2 gaps * 20px 
-               = 520px total height to align perfectly 
+               3 graphs * 128px height 
+               + 2 gaps * 16px 
+               = 384 + 32 = 416px total height to align perfectly 
             */
-            height: 520px; 
+            height: 416px; 
             position: relative;
             margin-top: 25px;
         }
@@ -167,7 +168,7 @@
 
         .weight-text-bg { fill: white; opacity: 0.85; }
         .weight-text {
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
             text-anchor: middle;
             dominant-baseline: middle;
@@ -210,23 +211,23 @@
         .sliders-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            gap: 16px;
         }
         .slider-column {
             background: #fff;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 6px;
             border: 1px solid #eee;
         }
         .slider-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
-        .slider-row label { font-size: 0.85rem; width: 60px; }
-        .slider-row input { flex: 1; margin: 0 10px; cursor: pointer; }
-        .val-disp { font-size: 0.8rem; font-family: monospace; width: 35px; text-align: right; }
+        .slider-row label { font-size: 0.75rem; width: 50px; }
+        .slider-row input { flex: 1; margin: 0 8px; cursor: pointer; }
+        .val-disp { font-size: 0.7rem; font-family: monospace; width: 30px; text-align: right; }
 
         /* Colors */
         .c1-color { color: #e67e22; border-color: #e67e22; }
@@ -262,9 +263,9 @@
         <!-- LEFT: SOURCES -->
         <div class="col-graphs">
             <div class="col-header">Source Waveforms</div>
-            <div id="plot-c1" class="plot-wrapper"><div class="label-badge c1-color" style="border-width:2px">C1 (Visual)</div></div>
-            <div id="plot-c2" class="plot-wrapper"><div class="label-badge c2-color" style="border-width:2px">C2 (Stimulus)</div></div>
-            <div id="plot-c3" class="plot-wrapper"><div class="label-badge c3-color" style="border-width:2px">C3 (Attention)</div></div>
+            <div id="plot-c1" class="plot-wrapper"><div class="label-badge c1-color" style="border-width:2px">C1</div></div>
+            <div id="plot-c2" class="plot-wrapper"><div class="label-badge c2-color" style="border-width:2px">C2</div></div>
+            <div id="plot-c3" class="plot-wrapper"><div class="label-badge c3-color" style="border-width:2px">C3</div></div>
         </div>
 
         <!-- CENTER: WIRING DIAGRAM -->
@@ -349,11 +350,11 @@
         // --- 2. PLOTLY SETUP ---
 
         const getLayout = (isSource = false) => ({
-            margin: { t: 25, b: 25, l: 30, r: 10 },
+            margin: { t: 20, b: 20, l: 25, r: 10 },
             xaxis: { range: [0, 500], showgrid: false, zeroline: false, fixedrange: true },
             yaxis: { range: [-1.5, 1.5], showticklabels: false, showgrid: false, zeroline: true, fixedrange: true },
             showlegend: false,
-            height: 160, // Matches CSS height
+            height: 128, // Matches CSS height
             autosize: true
         });
         const getConfig = (isSource = false) => ({ 
@@ -432,15 +433,15 @@
         const svgContainer = document.getElementById('network-diagram');
         
         // Vertical positions matching the CSS Graph locations
-        // Each graph is 160px high with 20px gap. 
-        // Centers: 80, 260 (160+20+80), 440 (160+20+160+20+80)
-        const yCenters = [80, 260, 440]; 
+        // Each graph is 128px high with 16px gap. 
+        // Adjusted for Plotly plot area positioning with margins
+        const yCenters = [62, 206, 346]; 
         const colors = ['#e67e22', '#c0392b', '#27ae60'];
 
         function renderSVG() {
             svgContainer.innerHTML = '';
             const width = svgContainer.clientWidth;
-            const height = 520; // Fixed total height
+            const height = 416; // Fixed total height
 
             const svg = document.createElementNS(svgNS, "svg");
             svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
