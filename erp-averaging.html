@@ -19,7 +19,7 @@
 
         .header {
             text-align: center;
-            margin-bottom: 12px;
+            margin-bottom: 4px;
         }
 
         h1 { margin: 8px 0 4px 0; font-size: 1.8rem; }
@@ -49,13 +49,13 @@
             margin-bottom: 8px; 
             color: #666; 
             text-align: center;
-            max-width: 440px;
+            max-width: 800px;
             font-size: 0.85rem;
         }
 
         .control-panel {
             background: white;
-            padding: 12px;
+            padding: 12px 0;
             border-radius: 6px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
             margin-bottom: 16px;
@@ -68,6 +68,7 @@
             gap: 12px;
             margin-bottom: 10px;
             flex-wrap: wrap;
+            padding: 0 12px;
         }
 
         .control-group {
@@ -111,16 +112,18 @@
             border-radius: 5px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.1s, opacity 0.2s;
+            transition: transform 0.1s, background-color 0.2s;
             font-size: 0.85rem;
         }
 
         button:active { transform: scale(0.98); }
-        button:hover { opacity: 0.9; }
 
         .btn-primary { background-color: #667eea; color: white; }
+        .btn-primary:hover { background-color: #5568d3; }
         .btn-secondary { background-color: #34495e; color: white; }
+        .btn-secondary:hover { background-color: #2c3e50; }
         .btn-danger { background-color: #e74c3c; color: white; }
+        .btn-danger:hover { background-color: #c0392b; }
 
         .visualization-area {
             width: 100%;
@@ -219,20 +222,23 @@
         .info-box {
             background: #e8f4f8;
             border-left: 3px solid #3498db;
-            padding: 8px 10px;
+            padding: 8px 0;
             margin: 12px 0;
             border-radius: 3px;
             max-width: 800px;
+            width: 100%;
         }
 
         .info-box h3 {
             margin: 0 0 5px 0;
+            padding: 0 10px;
             color: #2980b9;
             font-size: 0.9rem;
         }
 
         .info-box p {
             margin: 0;
+            padding: 0 10px;
             color: #555;
             line-height: 1.5;
             font-size: 0.8rem;
@@ -244,7 +250,7 @@
     <div class="header">
         <h1>ERP Averaging Demo</h1>
         <p class="subtitle">
-            Compare how ERPs emerge for Oddball (25%, large P3) vs Standard (75%, small P3) stimuli. 
+            Compare how ERPs emerge for Oddball (25%, large P3) vs Standard (75%, small P3) stimuli.<br>
             Random noise cancels out while revealing the different brain responses to rare and frequent events.
         </p>
     </div>
@@ -264,8 +270,8 @@
             <div class="control-group">
                 <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                     Total Number of Trials: <span class="value-display" id="trials-value">0</span>
-                    <button class="btn-secondary" onclick="addTrial()" style="white-space: nowrap; padding: 5px 10px; font-size: 0.75rem;">+ 1 Trial</button>
-                    <button class="btn-secondary" onclick="addTenTrials()" style="white-space: nowrap; padding: 5px 10px; font-size: 0.75rem;">+10 Trials</button>
+                    <button class="btn-primary" onclick="addTrial()" style="white-space: nowrap; padding: 4px 12px; font-size: 1rem; font-weight: 600;">+1</button>
+                    <button class="btn-primary" onclick="addTenTrials()" style="white-space: nowrap; padding: 4px 12px; font-size: 1rem; font-weight: 600;">+10</button>
                 </label>
                 <input type="range" id="trials-slider" min="1" max="100" value="0" step="1" style="width: 100%;">
             </div>
@@ -673,14 +679,20 @@
             // Plot layout template
             const getLayout = () => ({
                 margin: { t: 20, b: 100, l: 60, r: 20 },
-                xaxis: { title: 'Time (ms)', range: [0, 800] },
-                yaxis: { title: 'Amplitude (μV)', range: [-10, 10] },
+                xaxis: { 
+                    title: { text: 'Time (ms)', font: { size: 10 } },
+                    range: [0, 800] 
+                },
+                yaxis: { 
+                    title: { text: 'Amplitude (μV)', font: { size: 10 } },
+                    range: [-10, 10] 
+                },
                 showlegend: true,
                 legend: { 
                     orientation: 'h',
                     x: 0.5,
                     xanchor: 'center',
-                    y: -0.6,
+                    y: -0.25,
                     yanchor: 'top'
                 },
                 hovermode: 'x unified'
@@ -688,8 +700,14 @@
             
             const getSingleLayout = () => ({
                 margin: { t: 20, b: 50, l: 60, r: 20 },
-                xaxis: { title: 'Time (ms)', range: [0, 800] },
-                yaxis: { title: 'Amplitude (μV)', range: [-10, 10] },
+                xaxis: { 
+                    title: { text: 'Time (ms)', font: { size: 10 } },
+                    range: [0, 800] 
+                },
+                yaxis: { 
+                    title: { text: 'Amplitude (μV)', font: { size: 10 } },
+                    range: [-10, 10] 
+                },
                 showlegend: false
             });
             
