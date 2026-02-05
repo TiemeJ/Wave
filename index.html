@@ -3,223 +3,844 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EEG/ERP Interactive Demos</title>
+    <title>EEG Convolution Interactive</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            background-color: #f4f6f8;
+            color: #333;
+            margin: 0;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 32px 16px;
-            color: #333;
         }
 
-        header {
-            text-align: center;
+        h1 { margin: 8px 0 4px 0; font-size: 1.8rem; }
+        
+        .back-link {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            padding: 8px 16px;
+            background-color: #667eea;
             color: white;
-            margin-bottom: 40px;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transition: background-color 0.3s;
+            font-size: 0.9rem;
         }
-
-        h1 {
-            font-size: 2.4rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        
+        .back-link:hover {
+            background-color: #5568d3;
+            text-decoration: none;
         }
+        
+        p.subtitle { margin-bottom: 24px; color: #666; text-align: center; font-size: 0.9rem; }
 
-        .subtitle {
-            font-size: 1rem;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-
-        .demos-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            max-width: 960px;
+        /* --- MAIN LAYOUT (3 COLUMNS) --- */
+        .main-stage {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
             width: 100%;
-            padding: 0 16px;
+            max-width: 720px;
+            gap: 8px;
         }
 
-        .demo-card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            text-decoration: none;
+        /* Columns */
+        .col-graphs {
+            flex: 1;
             display: flex;
             flex-direction: column;
+            gap: 16px; /* Space between graphs */
+            min-width: 160px;
         }
 
-        .demo-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 12px 32px rgba(0,0,0,0.3);
-        }
-
-        .demo-header {
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .demo-header h2 {
-            font-size: 1.3rem;
-            margin-bottom: 6px;
-        }
-
-        .demo-header .tag {
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            padding: 3px 10px;
-            border-radius: 16px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .demo-body {
-            padding: 20px;
-            flex-grow: 1;
+        .col-image {
+            flex: 2; /* Wider than regular graph columns */
             display: flex;
             flex-direction: column;
+            gap: 16px;
+            min-width: 240px;
         }
 
-        .demo-body p {
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 16px;
-            flex-grow: 1;
-            font-size: 0.9rem;
+        .col-center {
+            flex: 0 0 200px; /* Fixed width for the wiring diagram */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .demo-features {
-            list-style: none;
-            margin-bottom: 16px;
-        }
-
-        .demo-features li {
-            padding: 6px 0;
-            padding-left: 20px;
-            position: relative;
-            color: #555;
-            font-size: 0.8rem;
-        }
-
-        .demo-features li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #667eea;
+        .col-header {
+            text-align: center;
             font-weight: bold;
+            font-size: 0.95rem;
+            color: #444;
+            height: 24px;
+            flex-shrink: 0;
+            margin-bottom: -8px;
         }
 
-        .demo-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            text-align: center;
+        /* Graph Containers */
+        .plot-wrapper {
+            height: 128px; /* Fixed height for alignment */
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .label-badge {
+            position: absolute;
+            left: 4px;
+            top: 4px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            z-index: 10;
+            font-size: 0.7rem;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #ccc;
+        }
+
+        .image-box {
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 20px; /* Increased padding */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 416px; /* Match total height of 3 graphs + 2 gaps */
+            box-sizing: border-box; /* Include padding in height calculation */
+        }
+
+        .image-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* --- SVG DIAGRAM --- */
+        .network-container {
+            width: 100%;
+            /* Calculated Height: 
+               3 graphs * 128px height 
+               + 2 gaps * 16px 
+               = 384 + 32 = 416px total height to align perfectly 
+            */
+            height: 416px; 
+            position: relative;
+            margin-top: 25px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* SVG Interactions */
+        .connection-path {
+            fill: none;
+            transition: stroke-width 0.2s, stroke-opacity 0.2s;
+        }
+        
+        /* Invisible fat path for easier clicking */
+        .click-path {
+            fill: none;
+            stroke: transparent;
+            stroke-width: 25px;
+            cursor: pointer;
+        }
+        .click-path:hover + .connection-path {
+            stroke-width: 4px; /* Highlight effect */
+            filter: drop-shadow(0 0 3px rgba(0,0,0,0.3));
+        }
+
+        .weight-text-bg { fill: white; opacity: 0.85; }
+        .weight-text {
+            font-size: 10px;
+            font-weight: bold;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* --- BUTTONS --- */
+        .btn-row {
+            margin-top: 5px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
             font-weight: 600;
-            font-size: 0.9rem;
-            transition: opacity 0.3s ease;
-            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
         }
+        button:active { transform: scale(0.98); }
+        button:hover { opacity: 0.9; }
 
-        .demo-button:hover {
-            opacity: 0.9;
+        .btn-reset { background-color: #34495e; color: white; }
+        .btn-zero { background-color: #e74c3c; color: white; }
+        .btn-random { background-color: #f39c12; color: white; }
+
+        /* --- BOTTOM SLIDERS (Fine Tuning) --- */
+        .sliders-section {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 1000px;
         }
-
-        .demo-icon {
-            font-size: 3rem;
-            margin-bottom: 10px;
+        .sliders-section h3 { display: none; }
+        
+        .sliders-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
         }
-
-        footer {
-            margin-top: 48px;
-            color: white;
-            text-align: center;
-            opacity: 0.8;
-            font-size: 0.8rem;
+        .slider-column {
+            background: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #eee;
         }
+        .slider-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .slider-row label { font-size: 0.75rem; width: 50px; }
+        .slider-row input { flex: 1; margin: 0 8px; cursor: pointer; }
+        .val-disp { font-size: 0.7rem; font-family: monospace; width: 30px; text-align: right; }
 
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.8rem;
-            }
-            .subtitle {
-                font-size: 0.9rem;
-            }
-            .demos-container {
-                grid-template-columns: 1fr;
-            }
+        /* Colors */
+        .c1-color { color: #e67e22; border-color: #e67e22; }
+        .c2-color { color: #c0392b; border-color: #c0392b; }
+        .c3-color { color: #27ae60; border-color: #27ae60; }
+
+        @media (max-width: 1000px) {
+            .main-stage { flex-direction: column; align-items: center; }
+            .col-center { height: 400px; width: 100%; margin: 20px 0; }
+            .network-container { height: 100%; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>📊 EEG/ERP Interactive Demos</h1>
-        <p class="subtitle">Explore fundamental concepts in EEG and Event-Related Potentials</p>
-    </header>
 
-    <div class="demos-container">
+    <a href="index.html" class="back-link">Back</a>
+    <h1>EEG Convolution Demo</h1>
+    <p class="subtitle">
+        Drag source waveforms to adjust position and amplitude. Click arrows to disconnect wires. Use sliders to change weights.
+    </p>
+
+    <!-- Main 3-Column Layout -->
+    <div class="main-stage">
         
-        <!-- Demo 1: EEG Convolution -->
-        <div class="demo-card" onclick="window.location.href='convolution.html'">
-            <div class="demo-header">
-                <h2>🌊 EEG Convolution</h2>
-                <span class="tag">Source Mixing</span>
+        <!-- IMAGE BOX -->
+        <div class="col-image">
+            <div class="col-header">Components (C)</div>
+            <div class="image-box">
+                <img src="img/Source.png" alt="Source">
             </div>
-            <div class="demo-body">
-                <p>
-                    Understand how brain source signals combine to create observed EEG signals. 
-                    Visualize the linear mixing process through an interactive weight matrix.
-                </p>
-                <ul class="demo-features">
-                    <li>Drag waveforms to adjust timing and amplitude</li>
-                    <li>Interactive weight matrix visualization</li>
-                    <li>Real-time convolution calculations</li>
-                    <li>Source separation concepts</li>
-                </ul>
-                <a href="convolution.html" class="demo-button">Launch Demo →</a>
+        </div>
+        
+        <!-- LEFT: SOURCES -->
+        <div class="col-graphs">
+            <div class="col-header">Source Waveforms</div>
+            <div id="plot-c1" class="plot-wrapper"><div class="label-badge c1-color" style="border-width:2px">C1</div></div>
+            <div id="plot-c2" class="plot-wrapper"><div class="label-badge c2-color" style="border-width:2px">C2</div></div>
+            <div id="plot-c3" class="plot-wrapper"><div class="label-badge c3-color" style="border-width:2px">C3</div></div>
+        </div>
+
+        <!-- CENTER: WIRING DIAGRAM -->
+        <div class="col-center">
+            <div class="col-header">Weights (W)</div>
+            <div class="network-container" id="network-diagram">
+                <!-- SVG Injected Here -->
+            </div>
+            
+            <div class="btn-row">
+                <button class="btn-reset" onclick="setDefaults()">Default</button>
+                <button class="btn-zero" onclick="disconnectAll()">Disconnect</button>
+                <button class="btn-random" onclick="setRandom()">Random</button>
             </div>
         </div>
 
-        <!-- Demo 2: ERP Averaging -->
-        <div class="demo-card" onclick="window.location.href='erp-averaging.html'">
-            <div class="demo-header">
-                <h2>📈 ERP Averaging</h2>
-                <span class="tag">Signal Processing</span>
-            </div>
-            <div class="demo-body">
-                <p>
-                    Learn how event-related potentials emerge from averaging multiple trials. 
-                    See how noise cancels out while the signal remains.
-                </p>
-                <ul class="demo-features">
-                    <li>Simulate single trials with noise</li>
-                    <li>Watch the average emerge</li>
-                    <li>Adjust SNR and trial count</li>
-                    <li>Interactive trial-by-trial exploration</li>
-                </ul>
-                <a href="erp-averaging.html" class="demo-button">Launch Demo →</a>
+        <!-- RIGHT: OBSERVED -->
+        <div class="col-graphs">
+            <div class="col-header">Observed Waveforms</div>
+            <div id="plot-e1" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E1</div></div>
+            <div id="plot-e2" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E2</div></div>
+            <div id="plot-e3" class="plot-wrapper"><div class="label-badge" style="color:#2980b9">E3</div></div>
+        </div>
+
+        <!-- IMAGE BOX -->
+        <div class="col-image">
+            <div class="col-header">Electrodes (E)</div>
+            <div class="image-box">
+                <img src="img/Observed.png" alt="Observed">
             </div>
         </div>
 
     </div>
 
-    <footer>
-        <p>Interactive EEG/ERP Teaching Tools | Created for Educational Purposes</p>
-    </footer>
+    <!-- BOTTOM: SLIDERS -->
+    <div class="sliders-section">
+        <div class="sliders-grid" id="sliders-container">
+            <!-- Sliders generated by JS -->
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION & DATA ---
+        
+        const time = Array.from({length: 101}, (_, i) => i * 5); // 0 to 500ms
+        const gaussian = (t, peak, width, amp) => amp * Math.exp(-0.5 * Math.pow((t - peak) / width, 2));
+
+        // Source Signals - Parameters that can be modified by dragging
+        // Default values to restore on "Default" button
+        const defaultParams = {
+            c1: { peak: 100, width: 30, amp: 0.8 },
+            c2: { peak: 160, width: 35, amp: -1.3 },
+            c3: { peak: 290, width: 60, amp: 1.4 }
+        };
+
+        // Current parameters (modifiable)
+        let sourceParams = {
+            c1: { ...defaultParams.c1 },
+            c2: { ...defaultParams.c2 },
+            c3: { ...defaultParams.c3 }
+        };
+
+        // Function to generate sources from current parameters
+        function generateSources() {
+            return {
+                c1: time.map(t => gaussian(t, sourceParams.c1.peak, sourceParams.c1.width, sourceParams.c1.amp)),
+                c2: time.map(t => gaussian(t, sourceParams.c2.peak, sourceParams.c2.width, sourceParams.c2.amp)),
+                c3: time.map(t => gaussian(t, sourceParams.c3.peak, sourceParams.c3.width, sourceParams.c3.amp))
+            };
+        }
+
+        // Generate initial sources
+        let sources = generateSources();
+
+        // State: Weights [Row][Col] -> C[Row] to E[Col]
+        let weights = [
+            [{val: 1.0, on: true}, {val: 0.25, on: true}, {val: 0.5, on: true}],
+            [{val: 0.5, on: true}, {val: 0.5, on: true}, {val: -0.5, on: true}],
+            [{val: 1.0, on: true}, {val: 0.75, on: true}, {val: 0.5, on: true}]
+        ];
+
+        // --- 2. PLOTLY SETUP ---
+
+        const getLayout = (isSource = false) => ({
+            margin: { t: 20, b: 20, l: 25, r: 10 },
+            xaxis: { range: [0, 500], showgrid: false, zeroline: false, fixedrange: true },
+            yaxis: { range: [-1.5, 1.5], showticklabels: false, showgrid: false, zeroline: true, fixedrange: true },
+            showlegend: false,
+            height: 128, // Matches CSS height
+            autosize: true
+        });
+        const getConfig = (isSource = false) => ({ 
+            staticPlot: true, 
+            responsive: true,
+            displayModeBar: false
+        });
+
+        // Draw Sources (with drag enabled)
+        Plotly.newPlot('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), getConfig());
+        Plotly.newPlot('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), getConfig());
+        Plotly.newPlot('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), getConfig());
+
+        // Draw Observed (Placeholders)
+        const blueLine = {color: '#2980b9', width: 3};
+        Plotly.newPlot('plot-e1', [{x: time, y: [], line: blueLine}], getLayout(), getConfig());
+        Plotly.newPlot('plot-e2', [{x: time, y: [], line: blueLine}], getLayout(), getConfig());
+        Plotly.newPlot('plot-e3', [{x: time, y: [], line: blueLine}], getLayout(), getConfig());
+
+        // --- 3. MAIN UPDATE LOOP ---
+
+        function updateAll(skipSliderRebuild = false) {
+            updateCalculations();
+            renderSVG();
+            if (!skipSliderRebuild) {
+                updateSlidersUI();
+            } else {
+                updateSliderValues();
+            }
+        }
+
+        function updateCalculations() {
+            // Regenerate sources from current parameters
+            sources = generateSources();
+
+            // Arrays for Observed Data
+            let e1 = new Array(time.length).fill(0);
+            let e2 = new Array(time.length).fill(0);
+            let e3 = new Array(time.length).fill(0);
+
+            for(let t=0; t<time.length; t++) {
+                // Get Source Values at time t
+                const s1 = sources.c1[t];
+                const s2 = sources.c2[t];
+                const s3 = sources.c3[t];
+
+                // Get Effective Weights (0 if turned off)
+                const w11 = weights[0][0].on ? weights[0][0].val : 0;
+                const w12 = weights[0][1].on ? weights[0][1].val : 0;
+                const w13 = weights[0][2].on ? weights[0][2].val : 0;
+
+                const w21 = weights[1][0].on ? weights[1][0].val : 0;
+                const w22 = weights[1][1].on ? weights[1][1].val : 0;
+                const w23 = weights[1][2].on ? weights[1][2].val : 0;
+
+                const w31 = weights[2][0].on ? weights[2][0].val : 0;
+                const w32 = weights[2][1].on ? weights[2][1].val : 0;
+                const w33 = weights[2][2].on ? weights[2][2].val : 0;
+
+                // Linear Summation
+                e1[t] = (s1 * w11) + (s2 * w21) + (s3 * w31);
+                e2[t] = (s1 * w12) + (s2 * w22) + (s3 * w32);
+                e3[t] = (s1 * w13) + (s2 * w23) + (s3 * w33);
+            }
+
+            // Update source plots with new data
+            Plotly.react('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), getConfig());
+            Plotly.react('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), getConfig());
+            Plotly.react('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), getConfig());
+
+            // Update observed plots
+            Plotly.react('plot-e1', [{x: time, y: e1, line: blueLine}], getLayout(), getConfig());
+            Plotly.react('plot-e2', [{x: time, y: e2, line: blueLine}], getLayout(), getConfig());
+            Plotly.react('plot-e3', [{x: time, y: e3, line: blueLine}], getLayout(), getConfig());
+        }
+
+        // --- 4. SVG DIAGRAM ---
+
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svgContainer = document.getElementById('network-diagram');
+        
+        // Vertical positions matching the CSS Graph locations
+        // Each graph is 128px high with 16px gap. 
+        // Adjusted for Plotly plot area positioning with margins
+        const yCenters = [62, 206, 346]; 
+        const colors = ['#e67e22', '#c0392b', '#27ae60'];
+
+        function renderSVG() {
+            svgContainer.innerHTML = '';
+            const width = svgContainer.clientWidth;
+            const height = 416; // Fixed total height
+
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            svg.setAttribute("preserveAspectRatio", "none");
+
+            // Define Arrow Marker
+            const defs = document.createElementNS(svgNS, "defs");
+            const marker = document.createElementNS(svgNS, "marker");
+            marker.setAttribute("id", "head");
+            marker.setAttribute("markerWidth", "12");
+            marker.setAttribute("markerHeight", "12");
+            marker.setAttribute("refX", "12");
+            marker.setAttribute("refY", "6");
+            marker.setAttribute("orient", "auto");
+            marker.setAttribute("markerUnits", "userSpaceOnUse");
+            const poly = document.createElementNS(svgNS, "polygon");
+            poly.setAttribute("points", "0 0, 12 6, 0 12");
+            poly.setAttribute("fill", "#555");
+            marker.appendChild(poly);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+
+            // Create single floating tooltip group
+            const tooltipGroup = document.createElementNS(svgNS, "g");
+            tooltipGroup.setAttribute("style", "opacity: 0; pointer-events: none; transition: opacity 0.1s;");
+            
+            const tooltipRect = document.createElementNS(svgNS, "rect");
+            tooltipRect.setAttribute("width", "40");
+            tooltipRect.setAttribute("height", "24");
+            tooltipRect.setAttribute("rx", "4");
+            tooltipRect.setAttribute("fill", "rgba(255, 255, 255, 0.9)");
+            tooltipRect.setAttribute("stroke", "#ccc");
+            tooltipRect.setAttribute("stroke-width", "1");
+            
+            const tooltipText = document.createElementNS(svgNS, "text");
+            tooltipText.setAttribute("x", "20");
+            tooltipText.setAttribute("y", "17"); // centered vertically in 24px height
+            tooltipText.setAttribute("text-anchor", "middle");
+            tooltipText.setAttribute("font-size", "12px");
+            tooltipText.setAttribute("font-weight", "bold");
+            tooltipText.setAttribute("fill", "#333");
+
+            tooltipGroup.appendChild(tooltipRect);
+            tooltipGroup.appendChild(tooltipText);
+
+            // Draw Wires
+            for(let r=0; r<3; r++) { // Sources (Left)
+                for(let c=0; c<3; c++) { // Observed (Right)
+                    const w = weights[r][c];
+                    
+                    const y1 = yCenters[r];
+                    const y2 = yCenters[c];
+                    
+                    // Bezier Curve Logic
+                    const cp1x = width * 0.4;
+                    const cp2x = width * 0.6;
+                    
+                    const d = `M 0 ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${width-4} ${y2}`;
+
+                    const g = document.createElementNS(svgNS, "g");
+
+                    // 1. Invisible Fat Path (Click Target)
+                    const clickPath = document.createElementNS(svgNS, "path");
+                    clickPath.setAttribute("d", d);
+                    clickPath.setAttribute("class", "click-path");
+                    clickPath.onclick = () => toggleWeight(r, c);
+
+                    // 2. Visible Wire
+                    const path = document.createElementNS(svgNS, "path");
+                    path.setAttribute("d", d);
+                    path.setAttribute("class", "connection-path");
+                    path.setAttribute("marker-end", "url(#head)");
+                    
+                    if(w.on) {
+                        path.setAttribute("stroke", colors[r]);
+                        // Thickness based on absolute value
+                        const thick = Math.max(1, Math.abs(w.val) * 6);
+                        path.setAttribute("stroke-width", thick);
+                        
+                        // Opacity check for zero value
+                        if(w.val === 0) path.setAttribute("stroke-opacity", 0.2);
+                        else path.setAttribute("stroke-opacity", 1);
+                    } else {
+                        // OFF State
+                        path.setAttribute("stroke", "#ccc");
+                        path.setAttribute("stroke-width", 2);
+                        path.setAttribute("stroke-dasharray", "5,5");
+                    }
+
+                    // Hover Logic
+                    clickPath.onmouseenter = () => {
+                        tooltipGroup.style.opacity = 1;
+                        tooltipText.textContent = w.val.toFixed(2);
+                    };
+                    clickPath.onmousemove = (e) => {
+                        // Transform mouse coordinates to SVG space
+                        const pt = svg.createSVGPoint();
+                        pt.x = e.clientX;
+                        pt.y = e.clientY;
+                        const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+                        
+                        // Move tooltip to mouse position (offset slightly)
+                        tooltipGroup.setAttribute("transform", `translate(${svgP.x + 10}, ${svgP.y - 20})`);
+                    };
+                    clickPath.onmouseleave = () => {
+                        tooltipGroup.style.opacity = 0;
+                    };
+
+                    g.appendChild(path);      // Wire
+                    g.appendChild(clickPath); // Invisible Click Area
+                    
+                    svg.appendChild(g);
+                }
+            }
+            
+            // Add connector dots at terminals
+            const dotGroup = document.createElementNS(svgNS, "g");
+            for(let y of yCenters) {
+                // Left Dot
+                let c1 = document.createElementNS(svgNS, "circle");
+                c1.setAttribute("cx", 0); c1.setAttribute("cy", y); c1.setAttribute("r", 4); c1.setAttribute("fill", "#666");
+                dotGroup.appendChild(c1);
+                // Right Dot
+                let c2 = document.createElementNS(svgNS, "circle");
+                c2.setAttribute("cx", width); c2.setAttribute("cy", y); c2.setAttribute("r", 4); c2.setAttribute("fill", "#2980b9");
+                dotGroup.appendChild(c2);
+            }
+            svg.appendChild(dotGroup);
+
+            // Append tooltip last so it is on top
+            svg.appendChild(tooltipGroup);
+
+            svgContainer.appendChild(svg);
+        }
+
+        // --- 5. SLIDER UI GENERATION ---
+
+        function updateSliderValues() {
+            // Update only the displayed values without rebuilding
+            for(let r=0; r<3; r++) {
+                for(let c=0; c<3; c++) {
+                    const sliderId = `slider-${r}-${c}`;
+                    const slider = document.getElementById(sliderId);
+                    const dispId = `disp-${r}-${c}`;
+                    const disp = document.getElementById(dispId);
+                    const rowId = `row-${r}-${c}`;
+                    const row = document.getElementById(rowId);
+                    
+                    if (disp) {
+                        disp.textContent = weights[r][c].val.toFixed(2);
+                    }
+                    if (row) {
+                        row.style.opacity = weights[r][c].on ? 1 : 0.5;
+                    }
+                }
+            }
+        }
+
+        function updateSlidersUI() {
+            const container = document.getElementById('sliders-container');
+            container.innerHTML = ''; // Clear
+
+            const sourceLabels = ["C1", "C2", "C3"];
+            const colors = ['#e67e22', '#c0392b', '#27ae60'];
+
+            // Create 3 columns of sliders (one per source)
+            for(let r=0; r<3; r++) {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'slider-column';
+                colDiv.style.borderTop = `4px solid ${colors[r]}`;
+                
+                const header = document.createElement('h4');
+                header.textContent = `${sourceLabels[r]} Weights`;
+                header.style.margin = "0 0 10px 0";
+                colDiv.appendChild(header);
+
+                for(let c=0; c<3; c++) {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'slider-row';
+                    rowDiv.id = `row-${r}-${c}`;
+
+                    const label = document.createElement('label');
+                    label.textContent = `to E${c+1}:`;
+
+                    const input = document.createElement('input');
+                    input.type = 'range';
+                    input.min = -1; 
+                    input.max = 1; 
+                    input.step = 'any';
+                    input.value = weights[r][c].val;
+                    input.id = `slider-${r}-${c}`;
+                    
+                    // Handle input
+                    input.oninput = (e) => {
+                        weights[r][c].val = parseFloat(e.target.value);
+                        // If user moves slider, auto-enable the path if it was off
+                        if(!weights[r][c].on) weights[r][c].on = true;
+                        updateAll(true); // Skip slider rebuild during drag
+                    };
+
+                    const disp = document.createElement('span');
+                    disp.className = 'val-disp';
+                    disp.id = `disp-${r}-${c}`;
+                    disp.textContent = weights[r][c].val.toFixed(2);
+                    
+                    if(!weights[r][c].on) {
+                        rowDiv.style.opacity = 0.5;
+                    }
+
+                    rowDiv.appendChild(label);
+                    rowDiv.appendChild(input);
+                    rowDiv.appendChild(disp);
+                    colDiv.appendChild(rowDiv);
+                }
+                container.appendChild(colDiv);
+            }
+        }
+
+        // --- 6. ACTIONS ---
+
+        function toggleWeight(r, c) {
+            weights[r][c].on = !weights[r][c].on;
+            updateAll();
+        }
+
+        function setDefaults() {
+            // Reset weights
+            weights = [
+                [{val: 1.0, on: true}, {val: 0.25, on: true}, {val: 0.5, on: true}],
+                [{val: 0.5, on: true}, {val: 0.5, on: true}, {val: -0.5, on: true}],
+                [{val: 1.0, on: true}, {val: 0.75, on: true}, {val: 0.5, on: true}]
+            ];
+            // Reset source parameters
+            sourceParams = {
+                c1: { ...defaultParams.c1 },
+                c2: { ...defaultParams.c2 },
+                c3: { ...defaultParams.c3 }
+            };
+            updateAll();
+        }
+
+        function disconnectAll() {
+            weights.forEach(row => row.forEach(w => {
+                // Keep val the same, but turn it off
+                w.on = false;
+            }));
+            updateAll();
+        }
+
+        function setRandom() {
+            weights.forEach(row => row.forEach(w => {
+                // Random between -1.00 and 1.00
+                w.val = Math.round((Math.random() * 2 - 1) * 20) / 20; 
+                w.on = true;
+            }));
+            updateAll();
+        }
+
+        // --- 7. DRAG INTERACTION FOR SOURCE PLOTS ---
+        
+        function setupDragHandlers() {
+            const plots = [
+                { id: 'plot-c1', param: 'c1' },
+                { id: 'plot-c2', param: 'c2' },
+                { id: 'plot-c3', param: 'c3' }
+            ];
+
+            plots.forEach(plot => {
+                const plotDiv = document.getElementById(plot.id);
+                let isDragging = false;
+                let startX = 0;
+                let startY = 0;
+                let startPeak = 0;
+                let startAmp = 0;
+
+                // Mouse events
+                plotDiv.addEventListener('mousedown', (e) => {
+                    if (e.button === 0) { // Left click
+                        isDragging = true;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        startPeak = sourceParams[plot.param].peak;
+                        startAmp = sourceParams[plot.param].amp;
+                        plotDiv.style.cursor = 'grabbing';
+                        e.preventDefault();
+                    }
+                });
+
+                plotDiv.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const deltaX = e.clientX - startX;
+                        const deltaY = e.clientY - startY;
+                        
+                        // Get plot dimensions to convert pixel movement to data coordinates
+                        const plotWidth = plotDiv.offsetWidth;
+                        const plotHeight = plotDiv.offsetHeight;
+                        
+                        // Horizontal drag: shift peak position
+                        // X-axis spans 0-500, so calculate proportional shift
+                        const xShift = (deltaX / plotWidth) * 500;
+                        sourceParams[plot.param].peak = Math.max(0, Math.min(500, startPeak + xShift));
+                        
+                        // Vertical drag: change amplitude
+                        // Y-axis spans -1.5 to 1.5 (3 units), calculate proportional change
+                        const yChange = -(deltaY / plotHeight) * 3; // Negative because Y is inverted
+                        sourceParams[plot.param].amp = Math.max(-2, Math.min(2, startAmp + yChange));
+                        
+                        updateAll();
+                    }
+                });
+
+                plotDiv.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    plotDiv.style.cursor = 'grab';
+                });
+
+                plotDiv.addEventListener('mouseleave', () => {
+                    isDragging = false;
+                    plotDiv.style.cursor = 'grab';
+                });
+
+                plotDiv.addEventListener('mouseenter', () => {
+                    if (!isDragging) {
+                        plotDiv.style.cursor = 'grab';
+                    }
+                });
+
+                // Touch events
+                plotDiv.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 1) {
+                        isDragging = true;
+                        startX = e.touches[0].clientX;
+                        startY = e.touches[0].clientY;
+                        startPeak = sourceParams[plot.param].peak;
+                        startAmp = sourceParams[plot.param].amp;
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+
+                plotDiv.addEventListener('touchmove', (e) => {
+                    if (isDragging && e.touches.length === 1) {
+                        const deltaX = e.touches[0].clientX - startX;
+                        const deltaY = e.touches[0].clientY - startY;
+                        
+                        // Get plot dimensions to convert pixel movement to data coordinates
+                        const plotWidth = plotDiv.offsetWidth;
+                        const plotHeight = plotDiv.offsetHeight;
+                        
+                        // Horizontal drag: shift peak position
+                        const xShift = (deltaX / plotWidth) * 500;
+                        sourceParams[plot.param].peak = Math.max(0, Math.min(500, startPeak + xShift));
+                        
+                        // Vertical drag: change amplitude
+                        const yChange = -(deltaY / plotHeight) * 3;
+                        sourceParams[plot.param].amp = Math.max(-2, Math.min(2, startAmp + yChange));
+                        
+                        updateAll();
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+
+                plotDiv.addEventListener('touchend', () => {
+                    isDragging = false;
+                });
+
+                plotDiv.addEventListener('touchcancel', () => {
+                    isDragging = false;
+                });
+            });
+        }
+
+        // --- 8. WINDOW RESIZE HANDLER ---
+        
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            // Debounce resize events to avoid too many redraws
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                // Recreate all plots with fresh layout
+                Plotly.react('plot-c1', [{x: time, y: sources.c1, line:{color: '#e67e22', width: 3}}], getLayout(), getConfig());
+                Plotly.react('plot-c2', [{x: time, y: sources.c2, line:{color: '#c0392b', width: 3}}], getLayout(), getConfig());
+                Plotly.react('plot-c3', [{x: time, y: sources.c3, line:{color: '#27ae60', width: 3}}], getLayout(), getConfig());
+                
+                // Recalculate and redraw observed plots
+                updateCalculations();
+                
+                // Redraw SVG with new dimensions
+                renderSVG();
+            }, 100); // Wait 100ms after resize stops
+        });
+
+        // --- INIT ---
+        updateAll();
+        setupDragHandlers();
+
+    </script>
 </body>
 </html>
